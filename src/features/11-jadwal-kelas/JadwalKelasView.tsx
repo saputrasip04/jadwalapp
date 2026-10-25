@@ -7,6 +7,11 @@ import { RombelCol, ROMBELS_48 } from '../03-matrix-sk/MatrixSKView';
 import { DAFTAR_MAPEL_KODE_DEFAULT, DaftarMapelKodeItem } from '../../domain/sync-mapel-matrix';
 import { ClassTemplatePair, TemplateMode } from '../../domain/template-blok-engine';
 import { resolveCellSchedule } from '../../domain/schedule-resolver';
+import {
+  JamEfektifData,
+  DEFAULT_JAM_EFEKTIF,
+  parseEffectiveScheduleStructure,
+} from '../../domain/jam-efektif-data';
 import { useAppStore } from '../../app/store';
 import {
   Calendar,
@@ -32,6 +37,7 @@ export const JadwalKelasView: React.FC = () => {
   const settingMode = useLiveQuery(() => db.setting.get('jadwal_template_mode'));
   const settingCustomA = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_A'));
   const settingCustomB = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_B'));
+  const settingJamEfektif = useLiveQuery(() => db.setting.get('jam_efektif'));
 
   // Parser data setting
   const matrixGrid = useMemo(() => {
@@ -92,20 +98,42 @@ export const JadwalKelasView: React.FC = () => {
     return ROMBELS_48.find((r: RombelCol) => r.id === selectedKelasId) || ROMBELS_48[0]!;
   }, [selectedKelasId]);
 
-  // Rentang jam pelajaran per hari
-  const timeSlots = [
-    { jp: 1, senin: '07:00-07:45', selasa: '07:00-07:45', start: '07:00' },
-    { jp: 2, senin: '07:45-08:30', selasa: '07:45-08:30', start: '07:45' },
-    { jp: 3, senin: '08:30-09:15', selasa: '08:30-09:15', start: '08:30' },
-    { jp: 4, senin: '09:15-10:00', selasa: '09:15-10:00', start: '09:15' },
-    { jp: 5, senin: '10:15-11:00', selasa: '10:15-11:00', start: '10:15' },
-    { jp: 6, senin: '11:00-11:45', selasa: '11:00-11:45', start: '11:00' },
-    { jp: 7, senin: '12:30-13:15', selasa: '12:30-13:15', start: '12:30' },
-    { jp: 8, senin: '13:15-14:00', selasa: '13:15-14:00', start: '13:15' },
-    { jp: 9, senin: '14:00-14:40', selasa: '14:00-14:45', start: '14:00' },
-    { jp: 10, senin: '14:40-15:20', selasa: '14:45-15:30', start: '14:45' },
-    { jp: 11, senin: '15:20-16:00', selasa: '15:30-16:15', start: '15:30' },
-  ];
+  // Parse Template Jam Efektif (Menu 7)
+  const jamEfektifData: JamEfektifData = useMemo(() => {
+    if (settingJamEfektif?.value_json) {
+      try {
+        const p = JSON.parse(settingJamEfektif.value_json);
+        if (p && p.senin && p.selasa_kamis && p.jumat) return p as JamEfektifData;
+      } catch (_) {}
+    }
+    try {
+      const local = localStorage.getItem('jbsmk_jam_efektif');
+      if (local) {
+        const p = JSON.parse(local);
+        if (p && p.senin && p.selasa_kamis && p.jumat) return p as JamEfektifData;
+      }
+    } catch (_) {}
+    return DEFAULT_JAM_EFEKTIF;
+  }, [settingJamEfektif]);
+
+  const schedStruct = useMemo(() => {
+    return parseEffectiveScheduleStructure(jamEfektifData);
+  }, [jamEfektifData]);
+
+  // Rentang jam pelajaran per hari (Dinamis dari Template Jam Efektif)
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: schedStruct.totalJpRows }, (_, i) => {
+      const jp = i + 1;
+      const sSenin = schedStruct.slotsPerDay[0]?.[i];
+      const sSelasa = schedStruct.slotsPerDay[1]?.[i];
+      return {
+        jp,
+        senin: sSenin?.pukul || '',
+        selasa: sSelasa?.pukul || '',
+        start: sSenin?.start || sSelasa?.start || '',
+      };
+    });
+  }, [schedStruct]);
 
   const DAYS = [
     { hari: 1 as Hari, nama: 'Senin', key: 'Sen' },
@@ -335,8 +363,8 @@ export const JadwalKelasView: React.FC = () => {
 
                       {/* Kolom Tiap Hari */}
                       {DAYS.map((d) => {
-                        // Pada hari Jumat, jam 7-11 off / selesai
-                        if (d.hari === 5 && jp > 6) {
+                        // Pada hari Jumat (d.hari === 5), jika jam melebihi batas KBM jam efektif
+                        if (d.hari === 5 && jp > (schedStruct.maxJpPerDay[4] || 6)) {
                           return (
                             <td
                               key={d.hari}

@@ -496,3 +496,131 @@ export async function syncJamEfektifToDbSlots(je: JamEfektifData): Promise<void>
     await db.jam_slot.bulkPut(newSlots);
   });
 }
+
+export interface EffectiveDaySlot {
+  jp: number;
+  start: string;
+  end: string;
+  dur: number;
+  pukul: string;
+  ket: string;
+  labelJam: string;
+}
+
+export interface EffectiveDayBreak {
+  afterJp: number;
+  start: string;
+  end: string;
+  dur: number;
+  pukul: string;
+  label: string;
+  ket: string;
+}
+
+export interface EffectiveScheduleStructure {
+  slotsPerDay: EffectiveDaySlot[][];
+  breaksPerDay: EffectiveDayBreak[][];
+  maxJpPerDay: number[];
+  totalJpRows: number;
+  breakAfterJps: number[];
+  hasBreakAtJp: (jp: number) => boolean;
+  getBreakForDay: (dayIdx: number, jp: number) => EffectiveDayBreak | undefined;
+  getRepresentativeTime: (jp: number) => string;
+}
+
+export function parseEffectiveScheduleStructure(
+  je: JamEfektifData | null | undefined
+): EffectiveScheduleStructure {
+  const data = je || DEFAULT_JAM_EFEKTIF;
+
+  const dayRowsList: JamEfektifRow[][] = [
+    data.senin && data.senin.length > 0 ? data.senin : DEFAULT_JAM_EFEKTIF.senin,
+    data.selasa_kamis && data.selasa_kamis.length > 0 ? data.selasa_kamis : DEFAULT_JAM_EFEKTIF.selasa_kamis,
+    data.selasa_kamis && data.selasa_kamis.length > 0 ? data.selasa_kamis : DEFAULT_JAM_EFEKTIF.selasa_kamis,
+    data.selasa_kamis && data.selasa_kamis.length > 0 ? data.selasa_kamis : DEFAULT_JAM_EFEKTIF.selasa_kamis,
+    data.jumat && data.jumat.length > 0 ? data.jumat : DEFAULT_JAM_EFEKTIF.jumat,
+  ];
+
+  const slotsPerDay: EffectiveDaySlot[][] = [];
+  const breaksPerDay: EffectiveDayBreak[][] = [];
+
+  for (let d = 0; d < 5; d++) {
+    const rows = dayRowsList[d] || [];
+    const daySlots: EffectiveDaySlot[] = [];
+    const dayBreaks: EffectiveDayBreak[] = [];
+    let currentJp = 0;
+
+    for (const r of rows) {
+      if (r.type === 'jam') {
+        currentJp++;
+        const s = (r.start || '').replace(':', '.');
+        const e = (r.end || '').replace(':', '.');
+        const timeStr = r.pukul || (s && e ? `${s} - ${e}` : '');
+        daySlots.push({
+          jp: currentJp,
+          start: s,
+          end: e,
+          dur: r.dur || (d === 4 ? (data.cfgParams?.durJumat || 35) : (data.cfgParams?.durStandar || 35)),
+          pukul: timeStr,
+          ket: r.ket || `JAM KE ${currentJp}`,
+          labelJam: r.labelJam || r.jamKe || String(currentJp),
+        });
+      } else if (r.type === 'break') {
+        const s = (r.start || '').replace(':', '.');
+        const e = (r.end || '').replace(':', '.');
+        const timeStr = r.pukul || (s && e ? `${s} - ${e}` : '');
+        const label = r.labelJam || r.jamKe || 'ISTIRAHAT';
+        const ket = r.ket || 'ISTIRAHAT';
+        dayBreaks.push({
+          afterJp: currentJp,
+          start: s,
+          end: e,
+          dur: r.dur || 15,
+          pukul: timeStr,
+          label,
+          ket,
+        });
+      }
+    }
+
+    slotsPerDay.push(daySlots);
+    breaksPerDay.push(dayBreaks);
+  }
+
+  const maxJpPerDay = slotsPerDay.map((slots, d) =>
+    slots.length > 0 ? slots.length : (d === 4 ? 6 : 11)
+  );
+  const totalJpRows = Math.max(...maxJpPerDay, 11);
+
+  const breakAfterJpSet = new Set<number>();
+  breaksPerDay.forEach((brs) =>
+    brs.forEach((br) => {
+      if (br.afterJp > 0) breakAfterJpSet.add(br.afterJp);
+    })
+  );
+  const breakAfterJps = Array.from(breakAfterJpSet).sort((a, b) => a - b);
+
+  const hasBreakAtJp = (jp: number) => breakAfterJps.includes(jp);
+  const getBreakForDay = (dayIdx: number, jp: number) => {
+    return breaksPerDay[dayIdx]?.find((b) => b.afterJp === jp);
+  };
+
+  const getRepresentativeTime = (jp: number) => {
+    const slotSelasa = slotsPerDay[1]?.[jp - 1];
+    if (slotSelasa?.pukul) return slotSelasa.pukul;
+    const slotSenin = slotsPerDay[0]?.[jp - 1];
+    if (slotSenin?.pukul) return slotSenin.pukul;
+    return '';
+  };
+
+  return {
+    slotsPerDay,
+    breaksPerDay,
+    maxJpPerDay,
+    totalJpRows,
+    breakAfterJps,
+    hasBreakAtJp,
+    getBreakForDay,
+    getRepresentativeTime,
+  };
+}

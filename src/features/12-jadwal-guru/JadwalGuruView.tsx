@@ -10,6 +10,12 @@ import {
   getTeacherDisplayCode,
   getTeacherMapelDisplay,
 } from '../../domain/schedule-resolver';
+import {
+  JamEfektifData,
+  DEFAULT_JAM_EFEKTIF,
+  parseEffectiveScheduleStructure,
+  EffectiveScheduleStructure,
+} from '../../domain/jam-efektif-data';
 import { useAppStore } from '../../app/store';
 import {
   UserCheck,
@@ -18,6 +24,7 @@ import {
   Layers,
   Sparkles,
   Search,
+  Clock,
 } from 'lucide-react';
 
 export const JadwalGuruView: React.FC = () => {
@@ -33,6 +40,8 @@ export const JadwalGuruView: React.FC = () => {
   const settingCustomA = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_A'));
   const settingCustomB = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_B'));
   const settingSekolah = useLiveQuery(() => db.setting.get('sekolah'));
+  // Aliran Data Real-Time dari Menu 7 (Template Jam Efektif)
+  const settingJamEfektif = useLiveQuery(() => db.setting.get('jam_efektif'));
 
   // Parser data setting
   const matrixGrid = useMemo(() => {
@@ -83,8 +92,34 @@ export const JadwalGuruView: React.FC = () => {
       nama: 'SMK NEGERI IHYA ULUMMUDIN SINGOJURUH',
       cabangDinas: 'CABANG DINAS PENDIDIKAN WILAYAH KAB.BANYUWANGI',
       alamat: 'Jl. KH Abdullah Hasbullah No.8 Singojuruh',
+      kepala_sekolah: 'MOHAMAD MALIKI, S.Pd',
+      nip_kepala_sekolah: '19820921 201407 1 001',
+      tanggal_tertulis: 'Singojuruh, 8 Agustus 2026',
     };
   }, [settingSekolah]);
+
+  // Parse Data Template Jam Efektif (Menu 7)
+  const jamEfektifData: JamEfektifData = useMemo(() => {
+    if (settingJamEfektif?.value_json) {
+      try {
+        const p = JSON.parse(settingJamEfektif.value_json);
+        if (p && p.senin && p.selasa_kamis && p.jumat) return p as JamEfektifData;
+      } catch (_) {}
+    }
+    try {
+      const local = localStorage.getItem('jbsmk_jam_efektif');
+      if (local) {
+        const p = JSON.parse(local);
+        if (p && p.senin && p.selasa_kamis && p.jumat) return p as JamEfektifData;
+      }
+    } catch (_) {}
+    return DEFAULT_JAM_EFEKTIF;
+  }, [settingJamEfektif]);
+
+  // Struktur jadwal (Jam per hari, posisi istirahat, pukul) yang 100% mengikuti template jam efektif
+  const schedStruct: EffectiveScheduleStructure = useMemo(() => {
+    return parseEffectiveScheduleStructure(jamEfektifData);
+  }, [jamEfektifData]);
 
   // Context resolver sel jadwal
   const scheduleContext = useMemo(() => ({
@@ -100,6 +135,7 @@ export const JadwalGuruView: React.FC = () => {
   // State tampilan & filter
   const [selectedGuruId, setSelectedGuruId] = useState<string>('');
   const [activeBlok, setActiveBlok] = useState<BlokNo>(1);
+  const [showTimes, setShowTimes] = useState<boolean>(true);
 
   // Inisialisasi guru terpilih (prioritaskan Saputra jika ada, atau guru pertama)
   React.useEffect(() => {
@@ -139,9 +175,7 @@ export const JadwalGuruView: React.FC = () => {
   const teacherCode = selectedGuru ? getTeacherDisplayCode(selectedGuru, guruList) : '-';
   const mapelDisplay = selectedGuru ? getTeacherMapelDisplay(selectedGuru) : 'Mata Pelajaran';
 
-  // Jadwal istirahat (sesuai jam efektif SMK)
-  // Istirahat 1 setelah JP 4, Istirahat 2 setelah JP 6 (Senin-Kamis)
-  const breakAfterJps = [4, 6];
+  const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
   return (
     <div className="flex flex-col items-center w-full pb-8">
@@ -183,6 +217,22 @@ export const JadwalGuruView: React.FC = () => {
               Blok 2 (Genap)
             </button>
           </div>
+        </div>
+
+        {/* Toggle Tampilkan Waktu Efektif */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTimes(!showTimes)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded border transition-colors ${
+              showTimes
+                ? 'bg-blue-50 border-blue-400 text-blue-900'
+                : 'bg-slate-50 border-slate-300 text-slate-600 hover:bg-slate-100'
+            }`}
+            title="Tampilkan / Sembunyikan Jam Pukul dari Template Jam Efektif"
+          >
+            <Clock className="w-3.5 h-3.5 text-blue-600" />
+            <span>{showTimes ? 'Waktu Efektif: Aktif' : 'Waktu: Ringkas'}</span>
+          </button>
         </div>
 
         {/* Right: Total JP & Cetak */}
@@ -251,50 +301,56 @@ export const JadwalGuruView: React.FC = () => {
           </tbody>
         </table>
 
-        {/* Tabel Jadwal Mengajar Resmi (Grid 5 Hari x 11 JP dengan Baris Istirahat) */}
+        {/* Tabel Jadwal Mengajar Resmi (Grid Mengikuti Template Jam Efektif dengan Baris Istirahat Dinamis) */}
         <table className="w-full border-collapse border-2 border-black table-fixed text-center text-xs">
           <thead>
             <tr className="bg-[#cccccc] h-9">
-              <th className="border-[1.5px] border-black w-[14%] font-extrabold text-xs text-black p-1">
+              <th className="border-[1.5px] border-black w-[15%] font-extrabold text-xs text-black p-1">
                 Jam Ke
               </th>
-              <th className="border-[1.5px] border-black w-[17.2%] font-extrabold text-xs text-black p-1">
+              <th className="border-[1.5px] border-black w-[17%] font-extrabold text-xs text-black p-1">
                 Senin
               </th>
-              <th className="border-[1.5px] border-black w-[17.2%] font-extrabold text-xs text-black p-1">
+              <th className="border-[1.5px] border-black w-[17%] font-extrabold text-xs text-black p-1">
                 Selasa
               </th>
-              <th className="border-[1.5px] border-black w-[17.2%] font-extrabold text-xs text-black p-1">
+              <th className="border-[1.5px] border-black w-[17%] font-extrabold text-xs text-black p-1">
                 Rabu
               </th>
-              <th className="border-[1.5px] border-black w-[17.2%] font-extrabold text-xs text-black p-1">
+              <th className="border-[1.5px] border-black w-[17%] font-extrabold text-xs text-black p-1">
                 Kamis
               </th>
-              <th className="border-[1.5px] border-black w-[17.2%] font-extrabold text-xs text-black p-1">
+              <th className="border-[1.5px] border-black w-[17%] font-extrabold text-xs text-black p-1">
                 Jumat
               </th>
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: 11 }, (_, i) => i + 1).map((jp) => {
+            {Array.from({ length: schedStruct.totalJpRows }, (_, i) => i + 1).map((jp) => {
               const s = jp - 1;
 
               return (
                 <React.Fragment key={jp}>
-                  {/* Baris Jam Ke */}
-                  <tr className="h-8">
-                    <td className="border-[1.5px] border-black bg-[#e5e7eb] font-bold text-xs text-black p-1 text-center">
-                      Jam Ke-{jp}
+                  {/* Baris Jam Pelajaran Ke-jp */}
+                  <tr className="h-9">
+                    <td className="border-[1.5px] border-black bg-[#e5e7eb] font-bold text-xs text-black p-1 text-center align-middle">
+                      <div className="font-extrabold text-[12px]">Jam Ke-{jp}</div>
+                      {showTimes && schedStruct.getRepresentativeTime(jp) && (
+                        <div className="text-[10px] text-slate-700 font-semibold leading-tight mt-0.5 whitespace-nowrap">
+                          {schedStruct.getRepresentativeTime(jp)}
+                        </div>
+                      )}
                     </td>
 
-                    {/* 5 Hari (d=0..4) */}
+                    {/* 5 Hari (d=0..4: Senin s/d Jumat) */}
                     {[0, 1, 2, 3, 4].map((d) => {
-                      const isOff = d === 4 && jp > 6;
+                      const maxJp = schedStruct.maxJpPerDay[d] ?? 11;
+                      const isOff = jp > maxJp;
                       if (isOff) {
                         return (
                           <td
                             key={d}
-                            className="border-[1.5px] border-black bg-white p-1"
+                            className="border-[1.5px] border-black bg-white p-1 text-center text-slate-300"
                           >
                             &nbsp;
                           </td>
@@ -302,12 +358,17 @@ export const JadwalGuruView: React.FC = () => {
                       }
 
                       const cell = teacherSchedule.grid[d]?.[s];
+                      const slotInfo = schedStruct.slotsPerDay[d]?.[s];
+                      const dayName = dayNames[d];
+
                       if (cell && cell !== 'X') {
                         return (
                           <td
                             key={d}
-                            className="border-[1.5px] border-black bg-white font-extrabold text-xs text-black p-1 text-center"
-                            title={`${cell.mapel || 'Mengajar'} (${cell.kelas})`}
+                            className="border-[1.5px] border-black bg-white font-extrabold text-xs text-black p-1 text-center align-middle"
+                            title={`${cell.mapel || 'Mengajar'} (${cell.kelas}) | ${dayName} Jam Ke-${jp}${
+                              slotInfo?.pukul ? ` (${slotInfo.pukul})` : ''
+                            }`}
                           >
                             {cell.kelas}
                           </td>
@@ -317,7 +378,8 @@ export const JadwalGuruView: React.FC = () => {
                       return (
                         <td
                           key={d}
-                          className="border-[1.5px] border-black bg-white p-1"
+                          className="border-[1.5px] border-black bg-white p-1 text-center align-middle"
+                          title={slotInfo?.pukul ? `${dayName} Jam Ke-${jp} (${slotInfo.pukul})` : undefined}
                         >
                           &nbsp;
                         </td>
@@ -325,20 +387,46 @@ export const JadwalGuruView: React.FC = () => {
                     })}
                   </tr>
 
-                  {/* Baris Istirahat (Interleaved) */}
-                  {breakAfterJps.includes(jp) && (
-                    <tr className="h-6">
-                      <td className="border-[1.5px] border-black bg-[#fffde7] text-[11px] font-extrabold text-[#7c5c00] p-0.5 text-center tracking-wider">
+                  {/* Baris Istirahat Dinamis (Interleaved Berdasarkan Template Jam Efektif) */}
+                  {schedStruct.hasBreakAtJp(jp) && (
+                    <tr className="h-7">
+                      <td className="border-[1.5px] border-black bg-[#fffde7] text-[11px] font-extrabold text-[#7c5c00] p-1 text-center tracking-wider align-middle">
                         ISTIRAHAT
                       </td>
-                      {[0, 1, 2, 3, 4].map((d) => (
-                        <td
-                          key={d}
-                          className="border-[1.5px] border-black bg-[#fffde7] text-[11px] font-bold text-[#7c5c00] p-0.5 text-center italic"
-                        >
-                          ISTIRAHAT
-                        </td>
-                      ))}
+                      {[0, 1, 2, 3, 4].map((d) => {
+                        const br = schedStruct.getBreakForDay(d, jp);
+                        const maxJp = schedStruct.maxJpPerDay[d] ?? 11;
+                        if (br) {
+                          return (
+                            <td
+                              key={d}
+                              className="border-[1.5px] border-black bg-[#fffde7] text-[11px] font-bold text-[#7c5c00] p-1 text-center italic leading-tight align-middle"
+                            >
+                              <div>{br.label}</div>
+                              {showTimes && br.pukul && (
+                                <div className="text-[10px] font-normal not-italic text-[#8c6d00]">
+                                  ({br.pukul})
+                                </div>
+                              )}
+                            </td>
+                          );
+                        }
+                        if (jp <= maxJp) {
+                          return (
+                            <td
+                              key={d}
+                              className="border-[1.5px] border-black bg-[#fffde7] p-1 text-center text-xs"
+                            >
+                              &nbsp;
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={d} className="border-[1.5px] border-black bg-white p-1">
+                            &nbsp;
+                          </td>
+                        );
+                      })}
                     </tr>
                   )}
                 </React.Fragment>
@@ -347,7 +435,7 @@ export const JadwalGuruView: React.FC = () => {
           </tbody>
         </table>
 
-        {/* Footer Sheet Ringkasan */}
+        {/* Footer Sheet Ringkasan Rombel */}
         <div className="mt-4 flex justify-between items-center text-[11px] text-slate-700 font-medium">
           <div>
             Total Rombel Diajar:{' '}
@@ -356,6 +444,34 @@ export const JadwalGuruView: React.FC = () => {
           </div>
           <div className="italic">
             Dokumen Jadwal Pembagian Tugas Mengajar Semester Gasal 2026/2027
+          </div>
+        </div>
+
+        {/* Tanda Tangan Resmi Kedinasan (Sesuai Standar Kop Surat SMKN) */}
+        <div className="mt-8 flex justify-between items-start text-xs text-black font-bold px-4 print:mt-6">
+          <div className="text-center w-[240px]">
+            <div>Mengetahui,</div>
+            <div className="mb-14">Kepala Sekolah</div>
+            <div className="font-extrabold underline uppercase">
+              {sekolahInfo.kepala_sekolah || jamEfektifData.principalName || 'MOHAMAD MALIKI, S.Pd'}
+            </div>
+            <div className="text-[11px] font-normal">
+              NIP. {sekolahInfo.nip_kepala_sekolah || jamEfektifData.principalNip || '19820921 201407 1 001'}
+            </div>
+          </div>
+
+          <div className="text-center w-[240px]">
+            <div>
+              {sekolahInfo.tanggal_tertulis ||
+                `${jamEfektifData.signatureCity || 'Singojuruh'}, ${
+                  jamEfektifData.signatureDate || '8 Agustus 2026'
+                }`}
+            </div>
+            <div className="mb-14">Guru Pengajar,</div>
+            <div className="font-extrabold underline uppercase">{teacherName}</div>
+            <div className="text-[11px] font-normal">
+              {selectedGuru?.nip_nik ? `NIP/NIK. ${selectedGuru.nip_nik}` : 'NIP. -'}
+            </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,11 @@ import { RombelCol, ROMBELS_48 } from '../03-matrix-sk/MatrixSKView';
 import { DAFTAR_MAPEL_KODE_DEFAULT, DaftarMapelKodeItem } from '../../domain/sync-mapel-matrix';
 import { ClassTemplatePair, TemplateMode } from '../../domain/template-blok-engine';
 import { resolveCellSchedule } from '../../domain/schedule-resolver';
+import {
+  JamEfektifData,
+  DEFAULT_JAM_EFEKTIF,
+  parseEffectiveScheduleStructure,
+} from '../../domain/jam-efektif-data';
 import { useAppStore } from '../../app/store';
 import {
   Layers,
@@ -32,6 +37,7 @@ export const JadwalJurusanView: React.FC = () => {
   const settingMode = useLiveQuery(() => db.setting.get('jadwal_template_mode'));
   const settingCustomA = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_A'));
   const settingCustomB = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_B'));
+  const settingJamEfektif = useLiveQuery(() => db.setting.get('jam_efektif'));
 
   // Parser data setting
   const matrixGrid = useMemo(() => {
@@ -114,20 +120,41 @@ export const JadwalJurusanView: React.FC = () => {
     });
   }, [selectedJurusan]);
 
-  // Slot jam & rentang waktu standar
-  const timeSlots = [
-    { jp: 1, senin: '07:00-07:45', regular: '07:00-07:45' },
-    { jp: 2, senin: '07:45-08:30', regular: '07:45-08:30' },
-    { jp: 3, senin: '08:30-09:15', regular: '08:30-09:15' },
-    { jp: 4, senin: '09:15-10:00', regular: '09:15-10:00' },
-    { jp: 5, senin: '10:15-11:00', regular: '10:15-11:00' },
-    { jp: 6, senin: '11:00-11:45', regular: '11:00-11:45' },
-    { jp: 7, senin: '12:30-13:15', regular: '12:30-13:15' },
-    { jp: 8, senin: '13:15-14:00', regular: '13:15-14:00' },
-    { jp: 9, senin: '14:00-14:40', regular: '14:00-14:45' },
-    { jp: 10, senin: '14:40-15:20', regular: '14:45-15:30' },
-    { jp: 11, senin: '15:20-16:00', regular: '15:30-16:15' },
-  ];
+  // Parse Template Jam Efektif (Menu 7)
+  const jamEfektifData: JamEfektifData = useMemo(() => {
+    if (settingJamEfektif?.value_json) {
+      try {
+        const p = JSON.parse(settingJamEfektif.value_json);
+        if (p && p.senin && p.selasa_kamis && p.jumat) return p as JamEfektifData;
+      } catch (_) {}
+    }
+    try {
+      const local = localStorage.getItem('jbsmk_jam_efektif');
+      if (local) {
+        const p = JSON.parse(local);
+        if (p && p.senin && p.selasa_kamis && p.jumat) return p as JamEfektifData;
+      }
+    } catch (_) {}
+    return DEFAULT_JAM_EFEKTIF;
+  }, [settingJamEfektif]);
+
+  const schedStruct = useMemo(() => {
+    return parseEffectiveScheduleStructure(jamEfektifData);
+  }, [jamEfektifData]);
+
+  // Slot jam & rentang waktu dinamis dari Template Jam Efektif
+  const timeSlots = useMemo(() => {
+    return Array.from({ length: schedStruct.totalJpRows }, (_, i) => {
+      const jp = i + 1;
+      const sSenin = schedStruct.slotsPerDay[0]?.[i];
+      const sSelasa = schedStruct.slotsPerDay[1]?.[i];
+      return {
+        jp,
+        senin: sSenin?.pukul || '',
+        regular: sSelasa?.pukul || sSenin?.pukul || '',
+      };
+    });
+  }, [schedStruct]);
 
   const DAYS = [
     { hari: 1 as Hari, nama: 'SENIN' },
@@ -327,8 +354,8 @@ export const JadwalJurusanView: React.FC = () => {
 
                                 {/* Kolom Tiap Hari */}
                                 {DAYS.map((d) => {
-                                  // Pada hari Jumat, jam 7-11 off
-                                  if (d.hari === 5 && jp > 6) {
+                                  // Pada hari Jumat, jam melebihi batas jam efektif KBM
+                                  if (d.hari === 5 && jp > (schedStruct.maxJpPerDay[4] || 6)) {
                                     return (
                                       <td
                                         key={d.hari}
@@ -401,7 +428,7 @@ export const JadwalJurusanView: React.FC = () => {
                               </td>
                               {timeSlots.map((ts) => {
                                 const jp = ts.jp;
-                                if (d.hari === 5 && jp > 6) {
+                                if (d.hari === 5 && jp > (schedStruct.maxJpPerDay[4] || 6)) {
                                   return (
                                     <td
                                       key={jp}
