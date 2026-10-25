@@ -16,5 +16,9 @@ export function exportMultiSheetXLSX(sheets: Record<string, unknown[][]>, fileNa
     const ws = XLSX.utils.aoa_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, safeName);
   }
+}
+
+export function exportHtmlTableToXLSX(table: HTMLElement, fileName: string) {
+  const wb = XLSX.utils.table_to_book(table);
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 }

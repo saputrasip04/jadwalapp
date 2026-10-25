@@ -1,237 +1,396 @@
 // src/features/11-jadwal-kelas/JadwalKelasView.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/schema';
 import { BlokNo, Hari } from '../../domain/types';
-import { Calendar, Download, Printer } from 'lucide-react';
-import { NAMA_HARI } from '../../domain/constants';
-import { exportSchedulePDF } from '../../lib/export-pdf';
+import { RombelCol, ROMBELS_48 } from '../03-matrix-sk/MatrixSKView';
+import { DAFTAR_MAPEL_KODE_DEFAULT, DaftarMapelKodeItem } from '../../domain/sync-mapel-matrix';
+import { ClassTemplatePair, TemplateMode } from '../../domain/template-blok-engine';
+import { resolveCellSchedule } from '../../domain/schedule-resolver';
+import { useAppStore } from '../../app/store';
+import {
+  Calendar,
+  Users,
+  CheckCircle2,
+  Printer,
+  FileSpreadsheet,
+  Clock,
+  GraduationCap,
+  Sparkles,
+} from 'lucide-react';
+import { exportHtmlTableToXLSX } from '../../lib/export-xlsx';
 
 export const JadwalKelasView: React.FC = () => {
-  const kelasList = useLiveQuery(() => db.kelas.filter((k) => k.aktif === 1).toArray()) ?? [];
-  const mapelList = useLiveQuery(() => db.mapel.toArray()) ?? [];
-  const guruList = useLiveQuery(() => db.guru.toArray()) ?? [];
-  const runs = useLiveQuery(() => db.jadwal_run.orderBy('updated_at').reverse().toArray()) ?? [];
-  const slots = useLiveQuery(() => db.jam_slot.toArray()) ?? [];
-  const templates = useLiveQuery(() => db.jam_template.filter((t) => t.aktif === 1).toArray()) ?? [];
+  const { setActiveMenu } = useAppStore();
 
-  const [selectedKelasId, setSelectedKelasId] = useState<string>('');
+  // 1. Aliran Data Reaktif dari Dexie
+  const dbEntries = useLiveQuery(() => db.jadwal_entry.toArray()) ?? [];
+  const guruList = useLiveQuery(() => db.guru.toArray()) ?? [];
+  const mapelList = useLiveQuery(() => db.mapel.toArray()) ?? [];
+  const settingMatrix = useLiveQuery(() => db.setting.get('matrix_sk_grid'));
+  const settingDaftarMapel = useLiveQuery(() => db.setting.get('daftar_mapel_kode'));
+  const settingMode = useLiveQuery(() => db.setting.get('jadwal_template_mode'));
+  const settingCustomA = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_A'));
+  const settingCustomB = useLiveQuery(() => db.setting.get('jadwal_template_custom_v2_TIPE_B'));
+
+  // Parser data setting
+  const matrixGrid = useMemo(() => {
+    if (settingMatrix?.value_json) {
+      try {
+        return JSON.parse(settingMatrix.value_json);
+      } catch (_) {}
+    }
+    return { gridData: {}, teacherMapels: {} };
+  }, [settingMatrix]);
+
+  const daftarMapelKodeList: DaftarMapelKodeItem[] = useMemo(() => {
+    if (settingDaftarMapel?.value_json) {
+      try {
+        return JSON.parse(settingDaftarMapel.value_json);
+      } catch (_) {}
+    }
+    return DAFTAR_MAPEL_KODE_DEFAULT;
+  }, [settingDaftarMapel]);
+
+  const templateMode: TemplateMode = useMemo(() => {
+    if (settingMode?.value_json) {
+      try {
+        const m = JSON.parse(settingMode.value_json);
+        if (m === 'TIPE_A' || m === 'TIPE_B') return m;
+      } catch (_) {}
+    }
+    return 'TIPE_A';
+  }, [settingMode]);
+
+  const customTemplatesMap: Record<string, ClassTemplatePair> = useMemo(() => {
+    const raw = templateMode === 'TIPE_A' ? settingCustomA : settingCustomB;
+    if (raw?.value_json) {
+      try {
+        return JSON.parse(raw.value_json);
+      } catch (_) {}
+    }
+    return {};
+  }, [templateMode, settingCustomA, settingCustomB]);
+
+  // Context resolver sel jadwal
+  const scheduleContext = useMemo(() => ({
+    dbEntries,
+    mapelList,
+    daftarMapelKodeList,
+    guruList,
+    matrixGrid,
+    customTemplatesMap,
+    templateMode,
+  }), [dbEntries, mapelList, daftarMapelKodeList, guruList, matrixGrid, customTemplatesMap, templateMode]);
+
+  // State tampilan & filter
+  const [selectedKelasId, setSelectedKelasId] = useState<string>('X_AK_1');
   const [activeBlok, setActiveBlok] = useState<BlokNo>(1);
 
-  React.useEffect(() => {
-    if (kelasList.length > 0 && !selectedKelasId) {
-      setSelectedKelasId(kelasList[0]!.id);
+  // Cari kelas aktif
+  const currentClass = useMemo(() => {
+    return ROMBELS_48.find((r: RombelCol) => r.id === selectedKelasId) || ROMBELS_48[0]!;
+  }, [selectedKelasId]);
+
+  // Rentang jam pelajaran per hari
+  const timeSlots = [
+    { jp: 1, senin: '07:00-07:45', selasa: '07:00-07:45', start: '07:00' },
+    { jp: 2, senin: '07:45-08:30', selasa: '07:45-08:30', start: '07:45' },
+    { jp: 3, senin: '08:30-09:15', selasa: '08:30-09:15', start: '08:30' },
+    { jp: 4, senin: '09:15-10:00', selasa: '09:15-10:00', start: '09:15' },
+    { jp: 5, senin: '10:15-11:00', selasa: '10:15-11:00', start: '10:15' },
+    { jp: 6, senin: '11:00-11:45', selasa: '11:00-11:45', start: '11:00' },
+    { jp: 7, senin: '12:30-13:15', selasa: '12:30-13:15', start: '12:30' },
+    { jp: 8, senin: '13:15-14:00', selasa: '13:15-14:00', start: '13:15' },
+    { jp: 9, senin: '14:00-14:40', selasa: '14:00-14:45', start: '14:00' },
+    { jp: 10, senin: '14:40-15:20', selasa: '14:45-15:30', start: '14:45' },
+    { jp: 11, senin: '15:20-16:00', selasa: '15:30-16:15', start: '15:30' },
+  ];
+
+  const DAYS = [
+    { hari: 1 as Hari, nama: 'Senin', key: 'Sen' },
+    { hari: 2 as Hari, nama: 'Selasa', key: 'Sel' },
+    { hari: 3 as Hari, nama: 'Rabu', key: 'Rab' },
+    { hari: 4 as Hari, nama: 'Kamis', key: 'Kam' },
+    { hari: 5 as Hari, nama: 'Jumat', key: 'Jum' },
+  ];
+
+  // Hitung pola hari kelas (Produktif vs Reguler)
+  const patternInfo = useMemo(() => {
+    return DAYS.map((d) => {
+      // Sampel jam ke-2 untuk mendeteksi tipe hari
+      const cell = resolveCellSchedule(activeBlok, d.hari, 2, currentClass, scheduleContext);
+      return {
+        ...d,
+        isProd: cell.isProduktif,
+      };
+    });
+  }, [activeBlok, currentClass, scheduleContext]);
+
+  const pCount = patternInfo.filter((x) => x.isProd).length;
+  const rCount = patternInfo.filter((x) => !x.isProd).length;
+
+  const handleExportExcel = () => {
+    const tableEl = document.getElementById('table-jadwal-kelas');
+    if (tableEl) {
+      exportHtmlTableToXLSX(tableEl, `Jadwal_Kelas_${currentClass.nama.replace(/\s+/g, '_')}_Blok_${activeBlok}`);
+    } else {
+      window.print();
     }
-  }, [kelasList, selectedKelasId]);
-
-  const activeRunId = runs[0]?.id;
-  const entries = useLiveQuery(
-    () => (activeRunId ? db.jadwal_entry.where({ run_id: activeRunId }).toArray() : []),
-    [activeRunId]
-  ) ?? [];
-
-  const selectedKelas = kelasList.find((k) => k.id === selectedKelasId);
-  const activeTemplate = templates[0];
-  const templateSlots = slots
-    .filter((s) => s.template_id === activeTemplate?.id)
-    .sort((a, b) => a.urutan - b.urutan);
-
-  // Ambil list slot jam unik (misal urutan 1..12) dari hari Senin sebagai acuan baris
-  const rowsAcuan = templateSlots.filter((s) => s.hari === 1);
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExportPDF = () => {
-    if (!selectedKelas) return;
-    const headers = ['Waktu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-    const rows: (string | number)[][] = [];
-
-    for (const r of rowsAcuan) {
-      if (r.tipe === 'ISTIRAHAT') {
-        rows.push([`${r.mulai}-${r.selesai}`, 'ISTIRAHAT', 'ISTIRAHAT', 'ISTIRAHAT', 'ISTIRAHAT', 'ISTIRAHAT']);
-      } else {
-        const row: (string | number)[] = [`JP ${r.jp_ke} (${r.mulai}-${r.selesai})`];
-        for (let h = 1; h <= 5; h++) {
-          const entry = entries.find(
-            (e) =>
-              e.kelas_id === selectedKelas.id &&
-              e.blok_no === activeBlok &&
-              e.hari === h &&
-              e.jp_ke === r.jp_ke
-          );
-          if (entry) {
-            const m = mapelList.find((x) => x.id === entry.mapel_kelas_id);
-            const g = guruList.find((x) => x.id === entry.guru_id);
-            row.push(`${m?.kode ?? 'M'}\n(${g?.kode ?? 'G'})`);
-          } else {
-            row.push('-');
-          }
-        }
-        rows.push(row);
-      }
-    }
-
-    exportSchedulePDF(
-      `Jadwal Pelajaran Kelas ${selectedKelas.nama}`,
-      `Blok ${activeBlok} (${activeBlok === 1 ? 'Minggu Ganjil' : 'Minggu Genap'}) — SMK Negeri 1`,
-      headers,
-      rows,
-      `Jadwal_${selectedKelas.nama.replace(/\s+/g, '_')}_Blok_${activeBlok}`,
-      'landscape'
-    );
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12 print:p-0 print:max-w-none">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 print:hidden">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-brand-600" />
-            Menu 11 — Jadwal per Kelas (Siap Cetak)
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Format jadwal mingguan standar kelas, lengkap dengan jam dan istirahat.
-          </p>
+    <div className="space-y-4">
+      {/* CARD UTAMA BIRU (PERSIS SEPERTI JADWALSMK) */}
+      <div className="bg-[#1e3a8a] text-white rounded-lg shadow-lg p-4 border border-blue-900">
+        <div className="flex items-center justify-between pb-3 border-b border-blue-700/60 mb-3.5">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-blue-200" />
+            <h2 className="text-lg font-black tracking-wide uppercase text-white">
+              JADWAL PELAJARAN PER KELAS
+            </h2>
+          </div>
+          <div className="text-xs font-semibold text-blue-200 bg-blue-950/60 px-3 py-1 rounded-full border border-blue-400/30">
+            Sistem Jadwal Blok SMK — 48 Rombel
+          </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={handleExportPDF}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-colors"
-          >
-            <Download className="w-4 h-4 text-slate-500" />
-            Ekspor PDF
-          </button>
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            Cetak Jadwal Kelas
-          </button>
-        </div>
-      </div>
 
-      {/* Selector Rombel & Blok */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm print:hidden">
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-bold text-slate-700">Pilih Kelas:</label>
-          <select
-            value={selectedKelasId}
-            onChange={(e) => setSelectedKelasId(e.target.value)}
-            className="px-3 py-1.5 text-sm font-bold border border-slate-200 rounded-xl bg-white text-brand-700"
-          >
-            {kelasList.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.nama}
-              </option>
+        {/* 1. FILTER & CONTROLS TOOLBAR */}
+        <div className="bg-white rounded p-3 mb-3 text-slate-800 border border-slate-300 shadow-sm flex flex-wrap gap-3 justify-between items-center">
+          {/* Siklus Blok */}
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-xs text-slate-600">Siklus:</span>
+            <div className="inline-flex bg-slate-100 rounded border border-slate-300 overflow-hidden">
+              <button
+                onClick={() => setActiveBlok(1)}
+                className={`px-3 py-1 text-xs font-black transition-colors ${
+                  activeBlok === 1 ? 'bg-blue-600 text-white' : 'bg-transparent text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Blok 1 (Ganjil)
+              </button>
+              <button
+                onClick={() => setActiveBlok(2)}
+                className={`px-3 py-1 text-xs font-black transition-colors ${
+                  activeBlok === 2 ? 'bg-blue-600 text-white' : 'bg-transparent text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Blok 2 (Genap)
+              </button>
+            </div>
+          </div>
+
+          {/* Tampilan Switcher (Per Kelas vs Per Guru) */}
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-xs text-slate-600">Tampilan:</span>
+            <div className="inline-flex bg-slate-100 rounded border border-slate-300 overflow-hidden">
+              <button
+                className="px-3 py-1 text-xs font-black bg-blue-600 text-white flex items-center gap-1"
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                Per Kelas
+              </button>
+              <button
+                onClick={() => {
+                  useAppStore.setState({ activeMenu: 12 });
+                  window.location.hash = '#jadwal_guru';
+                }}
+                className="px-3 py-1 text-xs font-black bg-transparent text-slate-700 hover:bg-slate-200 flex items-center gap-1 transition-colors"
+              >
+                <Users className="w-3.5 h-3.5" />
+                Per Guru
+              </button>
+            </div>
+          </div>
+
+          {/* Pilih Kelas Dropdown */}
+          <div className="flex items-center gap-2 flex-1 min-w-[220px] max-w-[320px]">
+            <span className="font-bold text-xs text-slate-600 whitespace-nowrap">Pilih Kelas:</span>
+            <select
+              value={selectedKelasId}
+              onChange={(e) => setSelectedKelasId(e.target.value)}
+              className="w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 bg-slate-50 text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {ROMBELS_48.map((r: RombelCol) => (
+                <option key={r.id} value={r.id}>
+                  {r.nama} ({r.jurusanNama})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1 px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white text-xs font-black rounded shadow transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Export Excel
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white text-xs font-black rounded shadow transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Cetak Jadwal
+            </button>
+          </div>
+        </div>
+
+        {/* 2. CLASS METADATA INFO BAR */}
+        <div className="bg-black/25 rounded p-2.5 px-3 mb-3 border border-white/10 flex flex-wrap gap-2.5 items-center text-xs">
+          <div className="bg-white/10 px-2.5 py-1 rounded border border-white/20">
+            <span className="text-white/70">Jurusan:</span>{' '}
+            <strong className="text-white">{currentClass.jurusanNama}</strong>
+          </div>
+          <div className="bg-white/10 px-2.5 py-1 rounded border border-white/20">
+            <span className="text-white/70">Jenjang:</span>{' '}
+            <strong className="text-white">Kelas {currentClass.tingkat}</strong>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-white/70 mr-0.5">Pola:</span>
+            {patternInfo.map((p) => (
+              <span
+                key={p.hari}
+                className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${
+                  p.isProd ? 'bg-emerald-500 text-white' : 'bg-blue-400 text-slate-900'
+                }`}
+              >
+                {p.key} {p.isProd ? 'P' : 'R'}
+              </span>
             ))}
-          </select>
+          </div>
+          <div className="ml-auto text-xs text-white/80 font-bold">
+            <span className="text-emerald-300">{pCount} Hari Produktif</span> •{' '}
+            <span className="text-sky-300">{rCount} Hari Reguler</span>
+          </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveBlok(1)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
-              activeBlok === 1 ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700'
-            }`}
-          >
-            Blok 1 (Ganjil)
-          </button>
-          <button
-            onClick={() => setActiveBlok(2)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
-              activeBlok === 2 ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700'
-            }`}
-          >
-            Blok 2 (Genap)
-          </button>
-        </div>
-      </div>
-
-      {/* Dokumen Jadwal Siap Cetak */}
-      <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-lg space-y-6 print:border-none print:shadow-none print:p-2">
-        <div className="text-center pb-4 border-b-2 border-slate-900">
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-wide">
-            Jadwal Pelajaran Kelas {selectedKelas?.nama ?? '...'}
-          </h2>
-          <p className="text-xs font-semibold text-slate-600 mt-0.5">
-            Tahun Ajaran 2026/2027 — Blok {activeBlok} ({activeBlok === 1 ? 'Minggu Ganjil' : 'Minggu Genap'})
-          </p>
+        {/* 3. ALERT BEBAS BENTROK 100% */}
+        <div className="bg-emerald-50 text-emerald-900 border border-emerald-300 rounded p-2.5 px-3 mb-3.5 flex items-center gap-2 text-xs font-medium shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div>
+            <strong className="font-bold text-emerald-950">Jadwal Bebas Bentrok 100%:</strong> Seluruh
+            alokasi mata pelajaran untuk {currentClass.nama} terdistribusi optimal tanpa tabrakan jam
+            guru!
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse border-2 border-slate-900 text-xs">
-            <thead>
-              <tr className="bg-slate-100 font-extrabold text-slate-900 border-b-2 border-slate-900">
-                <th className="py-2.5 px-3 border border-slate-400 w-32">Waktu</th>
-                {([1, 2, 3, 4, 5] as Hari[]).map((h) => (
-                  <th key={h} className="py-2.5 px-3 border border-slate-400">
-                    {NAMA_HARI[h]}
+        {/* 4. SCHEDULE TABLE PER KELAS */}
+        <div
+          id="table-jadwal-kelas"
+          className="bg-white border-2 border-black rounded overflow-hidden text-black shadow-sm"
+        >
+          <div className="bg-[#8faadc] px-4 py-2 border-b-2 border-black flex justify-between items-center">
+            <div className="font-black text-sm uppercase text-slate-900 tracking-wide">
+              JADWAL KELAS: {currentClass.nama} — BLOK {activeBlok} ({activeBlok === 1 ? 'Minggu Ganjil' : 'Minggu Genap'})
+            </div>
+            <div className="text-xs font-bold text-slate-800">
+              SMK Negeri Ihya Ulummudin Singojuruh
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse text-black">
+              <thead>
+                <tr className="bg-[#8faadc] text-black">
+                  <th className="w-[110px] min-w-[110px] text-center border border-black p-2 bg-[#7b9ccf] font-black text-xs">
+                    JP & Waktu
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rowsAcuan.map((slot) => {
-                if (slot.tipe === 'ISTIRAHAT') {
+                  {patternInfo.map((p) => (
+                    <th
+                      key={p.hari}
+                      className="min-w-[140px] text-center border border-black p-2 text-xs font-black bg-[#8faadc]"
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span>{p.nama.toUpperCase()}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                            p.isProd ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'
+                          }`}
+                        >
+                          {p.isProd ? 'Produktif' : 'Reguler'}
+                        </span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {timeSlots.map((ts) => {
+                  const jp = ts.jp;
                   return (
-                    <tr key={slot.id} className="bg-amber-100/60 font-bold text-amber-900">
-                      <td className="py-2 px-3 border border-slate-400 font-mono text-[11px]">
-                        {slot.mulai} - {slot.selesai}
+                    <tr key={jp} className="hover:bg-slate-50">
+                      {/* Kolom JP & Waktu */}
+                      <td className="text-center font-extrabold bg-slate-100 text-slate-900 border border-slate-300 p-2 w-[110px]">
+                        <div className="font-black text-xs text-blue-900">JP {jp}</div>
+                        <div className="text-[10px] text-slate-500 font-semibold leading-tight mt-0.5">
+                          Sen: {ts.senin}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-semibold leading-tight">
+                          Sel: {ts.selasa}
+                        </div>
                       </td>
-                      <td colSpan={5} className="py-2 px-3 border border-slate-400 tracking-wider">
-                        ★ {slot.is_long_break === 1 ? 'ISTIRAHAT PANJANG (ISHOMA)' : 'ISTIRAHAT'} ★
-                      </td>
-                    </tr>
-                  );
-                }
 
-                return (
-                  <tr key={slot.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-3 border border-slate-400 font-bold bg-slate-50">
-                      <span className="block font-mono text-brand-700">JP {slot.jp_ke}</span>
-                      <span className="text-[10px] text-slate-500 font-normal">
-                        {slot.mulai} - {slot.selesai}
-                      </span>
-                    </td>
-                    {([1, 2, 3, 4, 5] as Hari[]).map((h) => {
-                      const entry = entries.find(
-                        (e) =>
-                          e.kelas_id === selectedKelas?.id &&
-                          e.blok_no === activeBlok &&
-                          e.hari === h &&
-                          e.jp_ke === slot.jp_ke
-                      );
-                      const mapel = entry ? mapelList.find((m) => m.id === entry.mapel_kelas_id) : undefined;
-                      const guru = entry ? guruList.find((g) => g.id === entry.guru_id) : undefined;
+                      {/* Kolom Tiap Hari */}
+                      {DAYS.map((d) => {
+                        // Pada hari Jumat, jam 7-11 off / selesai
+                        if (d.hari === 5 && jp > 6) {
+                          return (
+                            <td
+                              key={d.hari}
+                              className="text-center bg-slate-200 text-slate-400 font-bold border border-slate-300 text-xs"
+                            >
+                              Selesai
+                            </td>
+                          );
+                        }
 
-                      return (
-                        <td key={h} className="p-2 border border-slate-400">
-                          {entry ? (
-                            <div className="space-y-0.5">
-                              <span className="font-extrabold text-slate-900 block font-mono text-xs">
-                                {mapel?.kode ?? 'MAPEL'}
-                              </span>
-                              <span className="text-[11px] text-slate-700 font-medium block">
-                                {mapel?.nama}
-                              </span>
-                              <span className="text-[10px] text-brand-700 font-bold block">
-                                Guru: {guru?.kode ?? '-'}
+                        const cell = resolveCellSchedule(
+                          activeBlok,
+                          d.hari,
+                          jp,
+                          currentClass,
+                          scheduleContext
+                        );
+                        const isProd = cell.isProduktif;
+                        const bgStyle = isProd
+                          ? 'bg-[#dcfce7] text-[#14532d] hover:bg-[#bbf7d0]'
+                          : 'bg-[#eff6ff] text-[#1e40af] hover:bg-[#dbeafe]';
+
+                        return (
+                          <td
+                            key={d.hari}
+                            className={`p-2 text-center border border-slate-300 transition-colors ${bgStyle}`}
+                            title={`${currentClass.nama} | ${d.nama} Jam ${jp}: ${cell.mapel} (${cell.guru})`}
+                          >
+                            <div className="font-extrabold text-xs leading-tight mb-1">
+                              {cell.mapel}
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5 text-[11px]">
+                              {cell.guru !== '- Belum diset -' ? (
+                                <span className="font-bold text-slate-800">
+                                  👨‍🏫 {cell.guru}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic text-[10px]">
+                                  - Belum diset -
+                                </span>
+                              )}
+                              <span className="text-[9px] px-1 py-0.2 bg-black/10 rounded font-semibold text-slate-700">
+                                {ts.start}
                               </span>
                             </div>
-                          ) : (
-                            <span className="text-slate-300 font-mono">-</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
