@@ -3,6 +3,7 @@ import { db } from '../../db/schema';
 import { useToastStore } from '../../ui/Toast';
 import { useAppStore } from '../../app/store';
 import { Guru, SettingSekolah } from '../../domain/types';
+import { exportBackupJSON, importBackupJSON } from '../../db/snapshot';
 import { ulid } from 'ulid';
 import * as XLSX from 'xlsx';
 import {
@@ -77,6 +78,7 @@ export const SettingView: React.FC<SettingViewProps> = ({ onSekolahChange }) => 
   const [importMode, setImportMode] = useState<'replace_all' | 'update_merge'>('replace_all');
   const [isDragging, setIsDragging] = useState(false);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog konfirmasi kosongkan
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
@@ -185,6 +187,79 @@ export const SettingView: React.FC<SettingViewProps> = ({ onSekolahChange }) => 
       });
     } catch (err) {
       addToast({ type: 'error', title: 'Gagal Menyimpan Identitas', message: String(err) });
+    }
+  };
+
+  // Ekspor & Sinkronisasi Database ke Repositori Git / Backup JSON
+  const handleSyncToGit = async () => {
+    try {
+      addToast({
+        type: 'info',
+        title: 'Mengekstrak Database',
+        message: 'Mengumpulkan seluruh data dari IndexedDB...',
+      });
+      const jsonStr = await exportBackupJSON();
+
+      // 1. Download berkas cadangan JSON ke PC pengguna
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_jadwalapp_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // 2. Kirim otomatis ke save_backup.php jika berjalan di server lokal (XAMPP / Apache)
+      try {
+        const res = await fetch('save_backup.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: jsonStr,
+        });
+        if (res.ok) {
+          addToast({
+            type: 'success',
+            title: 'Tersimpan di Repositori Git',
+            message: '✓ Berhasil menyimpan data ke folder repositori data/backup_database.json!',
+          });
+          return;
+        }
+      } catch (_) {}
+
+      addToast({
+        type: 'success',
+        title: 'Backup Berhasil',
+        message: '✓ Berkas cadangan database JSON berhasil diunduh ke komputer Anda.',
+      });
+    } catch (err: any) {
+      addToast({ type: 'error', title: 'Gagal Ekspor Data', message: String(err?.message || err) });
+    }
+  };
+
+  // Pulihkan Database dari Berkas JSON
+  const handleFileImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      await importBackupJSON(text);
+      await loadData();
+      addToast({
+        type: 'success',
+        title: 'Database Berhasil Dipulihkan',
+        message: `✓ Berhasil memulihkan data dari ${file.name}. Silakan muat ulang halaman jika diperlukan.`,
+      });
+    } catch (err: any) {
+      addToast({
+        type: 'error',
+        title: 'Gagal Memulihkan Database',
+        message: String(err?.message || err),
+      });
+    } finally {
+      if (jsonFileInputRef.current) {
+        jsonFileInputRef.current.value = '';
+      }
     }
   };
 
@@ -960,14 +1035,40 @@ export const SettingView: React.FC<SettingViewProps> = ({ onSekolahChange }) => 
             />
           </div>
 
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleSaveSekolah}
-              className="w-full md:w-auto bg-[#1b4cb4] hover:bg-[#143a8c] text-white font-extrabold text-xs px-4 py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all whitespace-nowrap cursor-pointer"
+              className="w-full md:w-auto bg-[#1b4cb4] hover:bg-[#143a8c] text-white font-extrabold text-xs px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all whitespace-nowrap cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Simpan Identitas</span>
             </button>
+
+            <button
+              onClick={handleSyncToGit}
+              className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all whitespace-nowrap cursor-pointer"
+              title="Cadangkan dan sinkronkan seluruh database jadwal, guru, mapel ke repositori Git / unduh JSON"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Sinkron ke Git / Backup JSON</span>
+            </button>
+
+            <button
+              onClick={() => jsonFileInputRef.current?.click()}
+              className="w-full md:w-auto bg-slate-700 hover:bg-slate-800 text-white font-extrabold text-xs px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all whitespace-nowrap cursor-pointer"
+              title="Pulihkan database dari berkas cadangan JSON"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Pulihkan JSON</span>
+            </button>
+
+            <input
+              type="file"
+              ref={jsonFileInputRef}
+              onChange={handleFileImportJSON}
+              accept=".json"
+              className="hidden"
+            />
           </div>
         </div>
       </div>

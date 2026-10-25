@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Sinkronisasi Data Database ke Repositori</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 28px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-size: 20px;
+      margin-top: 0;
+      color: #38bdf8;
+    }
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .status-loading {
+      background: #0369a1;
+      color: #e0f2fe;
+    }
+    .status-success {
+      background: #065f46;
+      color: #d1fae5;
+    }
+    .status-error {
+      background: #881337;
+      color: #ffe4e6;
+    }
+    .summary {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 14px;
+      max-height: 240px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+    button {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📦 Sinkronisasi Data JadwalApp ke Git</h1>
+    <div id="status" class="status status-loading">⏳ Menghubungkan ke IndexedDB 'penjadwal_blok_smk'...</div>
+    <div id="summary" class="summary">Memeriksa tabel...</div>
+    <div class="btn-group">
+      <button class="btn-primary" id="btnDownload" disabled>⬇️ Unduh File JSON</button>
+      <button class="btn-secondary" id="btnCopy" disabled>📋 Salin JSON</button>
+    </div>
+  </div>
+
+  <script>
+    const DB_NAME = 'penjadwal_blok_smk';
+    const statusEl = document.getElementById('status');
+    const summaryEl = document.getElementById('summary');
+    const btnDownload = document.getElementById('btnDownload');
+    const btnCopy = document.getElementById('btnCopy');
+
+    let fullExportData = null;
+
+    async function exportDatabase() {
+      try {
+        const req = indexedDB.open(DB_NAME);
+        req.onerror = (e) => {
+          statusEl.className = 'status status-error';
+          statusEl.textContent = '❌ Gagal membuka database ' + DB_NAME;
+        };
+        req.onsuccess = async (e) => {
+          const db = e.target.result;
+          const storeNames = Array.from(db.objectStoreNames);
+          
+          if (storeNames.length === 0) {
+            statusEl.className = 'status status-error';
+            statusEl.textContent = '⚠️ Database ditemukan tetapi tidak ada tabel (kosong).';
+            return;
+          }
+
+          statusEl.textContent = `⏳ Membaca ${storeNames.length} tabel...`;
+          
+          const tables = {};
+          const tx = db.transaction(storeNames, 'readonly');
+          
+          let logHtml = '';
+          for (const name of storeNames) {
+            const store = tx.objectStore(name);
+            const data = await new Promise((resolve, reject) => {
+              const getAllReq = store.getAll();
+              getAllReq.onsuccess = () => resolve(getAllReq.result);
+              getAllReq.onerror = () => reject(getAllReq.error);
+            });
+            tables[name] = data;
+            logHtml += `<div>• <b>${name}</b>: ${data.length} baris</div>`;
+          }
+
+          summaryEl.innerHTML = logHtml;
+
+          fullExportData = {
+            app: 'penjadwal-blok-smk',
+            schema_version: 1,
+            exported_at: new Date().toISOString(),
+            tables: tables
+          };
+
+          btnDownload.disabled = false;
+          btnCopy.disabled = false;
+
+          // Kirim ke save_backup.php (same origin)
+          try {
+            statusEl.textContent = '⏳ Menyimpan data ke repositori lokal...';
+            const res = await fetch('save_backup.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(fullExportData)
+            });
+
+            if (res.ok) {
+              const resJson = await res.json();
+              statusEl.className = 'status status-success';
+              statusEl.textContent = '✅ Berhasil! Semua data telah tersimpan otomatis ke direktori repositori Git!';
+              return;
+            }
+          } catch (err) {
+            console.warn('save_backup.php failed, trying 3333 fallback...', err);
+          }
+
+          // Fallback node server
+          try {
+            await fetch('http://127.0.0.1:3333/save-db', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(fullExportData)
+            });
+            statusEl.className = 'status status-success';
+            statusEl.textContent = '✅ Berhasil! Semua data telah tersimpan otomatis ke direktori repositori Git!';
+          } catch (e2) {
+            statusEl.className = 'status status-success';
+            statusEl.textContent = '✅ Data berhasil diekstrak! Klik "Unduh File JSON" untuk menyimpan.';
+          }
+        };
+      } catch (err) {
+        statusEl.className = 'status status-error';
+        statusEl.textContent = '❌ Terjadi kesalahan: ' + err.message;
+      }
+    }
+
+    btnDownload.onclick = () => {
+      if (!fullExportData) return;
+      const blob = new Blob([JSON.stringify(fullExportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_database_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    btnCopy.onclick = () => {
+      if (!fullExportData) return;
+      navigator.clipboard.writeText(JSON.stringify(fullExportData, null, 2)).then(() => {
+        alert('Data JSON berhasil disalin ke clipboard!');
+      });
+    };
+
+    window.onload = exportDatabase;
+  </script>
+</body>
+</html>

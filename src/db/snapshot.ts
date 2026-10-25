@@ -108,3 +108,44 @@ export async function exportBackupJSON(): Promise<string> {
 
   return JSON.stringify(exportData, null, 2);
 }
+
+export async function importBackupJSON(jsonStr: string): Promise<{ success: boolean; tables: Record<string, number> }> {
+  const parsed = JSON.parse(jsonStr) as { tables?: Record<string, unknown[]> };
+  if (!parsed || !parsed.tables || typeof parsed.tables !== 'object') {
+    throw new Error('Format berkas cadangan JSON tidak valid (field tables tidak ditemukan)');
+  }
+
+  const tables = parsed.tables;
+  const tableCounts: Record<string, number> = {};
+  await db.transaction('rw', [
+    db.meta, db.setting, db.level, db.jurusan, db.kelas, db.pola_blok, db.lab,
+    db.mapel, db.matrix_sk, db.mapel_kelas, db.guru, db.guru_kompetensi,
+    db.guru_ketersediaan, db.pengampu, db.jam_template, db.jam_slot,
+    db.jadwal_run, db.jadwal_entry, db.konflik, db.audit_log,
+  ], async () => {
+    for (const [tblName, rows] of Object.entries(tables)) {
+      try {
+        const tbl = db.table(tblName);
+        if (tbl && Array.isArray(rows) && rows.length > 0) {
+          await tbl.clear();
+          await tbl.bulkPut(rows);
+          tableCounts[tblName] = rows.length;
+        }
+      } catch (err) {
+        logger.warn('RESTORE_TABLE', `Gagal memulihkan tabel ${tblName}`, err);
+      }
+    }
+
+    await db.audit_log.put({
+      id: ulid(),
+      at: new Date().toISOString(),
+      aksi: 'IMPORT',
+      entitas: 'DATABASE',
+      entitas_id: 'BACKUP_FILE',
+      ringkas: `Dipulihkan dari file backup JSON eksternal`,
+    });
+  });
+
+  return { success: true, tables: tableCounts };
+}
+

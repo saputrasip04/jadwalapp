@@ -7,7 +7,9 @@ import {
   DEFAULT_SETTING_JP,
   JURUSAN_DEFAULT,
 } from '../domain/constants';
-import type { JamSlot, Hari } from '../domain/types';
+import type { JamSlot, Hari, Guru, Mapel } from '../domain/types';
+import skCurriculumData from '../domain/sk_curriculum_2026.json';
+import { DAFTAR_MAPEL_KODE_DEFAULT } from '../domain/curriculum-data';
 
 export async function initSeed(force = false) {
   const version = await db.meta.get('schema_version');
@@ -22,6 +24,7 @@ export async function initSeed(force = false) {
     db.jurusan,
     db.lab,
     db.guru,
+    db.mapel,
     db.jam_template,
     db.jam_slot,
   ], async () => {
@@ -34,7 +37,7 @@ export async function initSeed(force = false) {
     await db.setting.put({
       key: 'sekolah',
       value_json: JSON.stringify({
-        nama: '',
+        nama: 'SMKN IHYA ULUMUDDIN SINGOJURUH',
         tahun_ajaran: '2026/2027',
         semester: 'Ganjil',
         kepala_sekolah: 'MOHAMAD MALIKI, S.Pd',
@@ -178,42 +181,46 @@ export async function initSeed(force = false) {
       await db.jam_slot.bulkPut(slots);
     }
 
-    // 7. Data Guru: Dikosongkan (tidak ada data dummy guru bawaan)
-    // Guru murni berasal dari input manual atau import file Excel oleh pengguna.
-  });
-
-  // 8. Pembersihan Data Dummy Lama yang Tersimpan di IndexedDB Pengguna
-  const dummyCleanupDone = await db.meta.get('dummy_cleanup_done_v1');
-  if (!dummyCleanupDone) {
-    await db.guru.clear();
-    await db.guru_kompetensi.clear();
-    await db.guru_ketersediaan.clear();
-    await db.pengampu.clear();
-    await db.mapel.clear();
-    await db.mapel_kelas.clear();
-    await db.matrix_sk.clear();
-    await db.kelas.clear();
-    await db.pola_blok.clear();
-    await db.jadwal_entry.clear();
-    await db.jadwal_run.clear();
-    await db.konflik.clear();
-
-    // Reset nama sekolah jika sebelumnya masih default 'SMK Negeri 1'
-    const s = await db.setting.get('sekolah');
-    if (s) {
-      try {
-        const parsed = JSON.parse(s.value_json);
-        if (parsed.nama === 'SMK Negeri 1' || parsed.nama === 'SMK NEGERI 1') {
-          parsed.nama = '';
-          await db.setting.put({
-            key: 'sekolah',
-            value_json: JSON.stringify(parsed),
-            updated_at: new Date().toISOString(),
-          });
-        }
-      } catch (_) {}
+    // 7. Data Mapel Kurikulum Acuan
+    const mapelCount = await db.mapel.count();
+    if (mapelCount === 0) {
+      const mapelList: Mapel[] = DAFTAR_MAPEL_KODE_DEFAULT.map((m) => ({
+        id: ulid(),
+        kode: m.kode,
+        nama: m.mapel,
+        kelompok: m.kategori === 'UMUM' ? 'UMUM' : (m.kategori === 'MULOK' ? 'MULOK' : 'C3'),
+        jenis: m.jenis || 'REGULER',
+        is_berat: 0,
+        is_pjok: m.kode.startsWith('PENJAS') ? 1 : 0,
+        butuh_lab: m.jenis === 'PRODUKTIF' ? 1 : 0,
+        lab_default_id: null,
+        maks_jp_sesi: null,
+        aktif: 1,
+      }));
+      await db.mapel.bulkPut(mapelList);
     }
 
-    await db.meta.put({ key: 'dummy_cleanup_done_v1', value: 'true' });
-  }
+    // 8. Data Guru Berdasarkan SK & Kurikulum 2026/2027 (89 Guru Resmi)
+    const guruCount = await db.guru.count();
+    if (guruCount === 0 && Array.isArray(skCurriculumData?.teachers)) {
+      const guruList: Guru[] = (skCurriculumData.teachers as any[]).map((t) => ({
+        id: ulid(),
+        kode: String(t.kode || t.id),
+        nama: t.nama,
+        sk_guru: t.mapelUtama || 'Umum',
+        tipe_guru: (t.tipe === 'P' ? 'PRODUKTIF' : 'REGULER') as 'REGULER' | 'PRODUKTIF',
+        setting_jp: Number(t.bebanJp) || 0,
+        nip_nik: null,
+        jp_min: null,
+        jp_maks: null,
+        maks_jp_hari: 6,
+        min_hari_bebas: 1,
+        maks_gap: 1,
+        aktif: 1,
+      }));
+      await db.guru.bulkPut(guruList);
+    }
+  });
+
+  await db.meta.put({ key: 'dummy_cleanup_done_v1', value: 'true' });
 }
