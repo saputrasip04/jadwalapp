@@ -18,11 +18,6 @@
             "total": 0,
             "items": [
                 {
-                    "mapel": "PAI1",
-                    "cols": [],
-                    "jp": 3
-                },
-                {
                     "mapel": "PAI2",
                     "cols": [],
                     "jp": 3
@@ -43,11 +38,6 @@
             "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
             "total": 0,
             "items": [
-                {
-                    "mapel": "PAI1",
-                    "cols": [],
-                    "jp": 3
-                },
                 {
                     "mapel": "PAI2",
                     "cols": [],
@@ -91,11 +81,6 @@
             "total": 0,
             "items": [
                 {
-                    "mapel": "PAI1",
-                    "cols": [],
-                    "jp": 3
-                },
-                {
                     "mapel": "PAI2",
                     "cols": [],
                     "jp": 3
@@ -117,11 +102,6 @@
             "total": 0,
             "items": [
                 {
-                    "mapel": "PAI1",
-                    "cols": [],
-                    "jp": 3
-                },
-                {
                     "mapel": "PAI2",
                     "cols": [],
                     "jp": 3
@@ -142,11 +122,6 @@
             "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
             "total": 0,
             "items": [
-                {
-                    "mapel": "PAI1",
-                    "cols": [],
-                    "jp": 3
-                },
                 {
                     "mapel": "PAI3",
                     "cols": [],
