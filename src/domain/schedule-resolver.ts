@@ -53,25 +53,9 @@ export function formatCombinedClasses(kelasList: string[]): string {
   return kelasList.join(', ');
 }
 
-// Kode singkat guru (misal PST4, TKJ1, atau kode guru di master)
-export function getTeacherDisplayCode(tObj: Guru | null | undefined, allGurus: Guru[] = []): string {
+// Kode / ID guru untuk lembar jadwal resmi (menggunakan ID guru / kode dari master data)
+export function getTeacherDisplayCode(tObj: Guru | null | undefined, _allGurus: Guru[] = []): string {
   if (!tObj) return '-';
-  const tName = String(tObj.nama || '').toUpperCase();
-  if (tName.includes('SAPUTRA')) return 'PST4';
-
-  const sk = String(tObj.sk_guru || '').toUpperCase();
-  const jurList = ['PSPT', 'TKJ', 'TKR', 'AK', 'KULINER', 'DPB', 'LAS', 'APAT'];
-  for (const jur of jurList) {
-    if (sk.includes(jur)) {
-      const jurGurus = allGurus.filter((g) => String(g.sk_guru || '').toUpperCase().includes(jur));
-      const idx = jurGurus.findIndex((g) => g.id === tObj.id || g.nama === tObj.nama);
-      if (idx !== -1) {
-        const prefix = jur === 'PSPT' ? 'PST' : jur === 'KULINER' ? 'KUL' : jur;
-        return `${prefix}${idx + 1}`;
-      }
-    }
-  }
-
   return tObj.kode || String(tObj.id || '-');
 }
 

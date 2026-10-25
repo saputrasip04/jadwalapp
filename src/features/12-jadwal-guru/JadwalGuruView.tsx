@@ -172,7 +172,7 @@ export const JadwalGuruView: React.FC = () => {
 
   // Format info guru
   const teacherName = selectedGuru ? selectedGuru.nama : 'GURU';
-  const teacherCode = selectedGuru ? getTeacherDisplayCode(selectedGuru, guruList) : '-';
+  const teacherCode = selectedGuru ? (selectedGuru.kode || getTeacherDisplayCode(selectedGuru, guruList)) : '-';
   const mapelDisplay = selectedGuru ? getTeacherMapelDisplay(selectedGuru) : 'Mata Pelajaran';
 
   const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
@@ -330,106 +330,61 @@ export const JadwalGuruView: React.FC = () => {
               const s = jp - 1;
 
               return (
-                <React.Fragment key={jp}>
-                  {/* Baris Jam Pelajaran Ke-jp */}
-                  <tr className="h-9">
-                    <td className="border-[1.5px] border-black bg-[#e5e7eb] font-bold text-xs text-black p-1 text-center align-middle">
-                      <div className="font-extrabold text-[12px]">Jam Ke-{jp}</div>
-                      {showTimes && schedStruct.getRepresentativeTime(jp) && (
-                        <div className="text-[10px] text-slate-700 font-semibold leading-tight mt-0.5 whitespace-nowrap">
-                          {schedStruct.getRepresentativeTime(jp)}
-                        </div>
-                      )}
-                    </td>
+                <tr key={jp} className="h-9">
+                  {/* Kolom Jam Ke & Waktu */}
+                  <td className="border-[1.5px] border-black bg-[#e5e7eb] font-bold text-xs text-black p-1 text-center align-middle">
+                    <div className="font-extrabold text-[12px]">Jam Ke-{jp}</div>
+                    {showTimes && schedStruct.getRepresentativeTime(jp) && (
+                      <div className="text-[10px] text-slate-700 font-semibold leading-tight mt-0.5 whitespace-nowrap">
+                        {schedStruct.getRepresentativeTime(jp)}
+                      </div>
+                    )}
+                  </td>
 
-                    {/* 5 Hari (d=0..4: Senin s/d Jumat) */}
-                    {[0, 1, 2, 3, 4].map((d) => {
-                      const maxJp = schedStruct.maxJpPerDay[d] ?? 11;
-                      const isOff = jp > maxJp;
-                      if (isOff) {
-                        return (
-                          <td
-                            key={d}
-                            className="border-[1.5px] border-black bg-white p-1 text-center text-slate-300"
-                          >
-                            &nbsp;
-                          </td>
-                        );
-                      }
-
-                      const cell = teacherSchedule.grid[d]?.[s];
-                      const slotInfo = schedStruct.slotsPerDay[d]?.[s];
-                      const dayName = dayNames[d];
-
-                      if (cell && cell !== 'X') {
-                        return (
-                          <td
-                            key={d}
-                            className="border-[1.5px] border-black bg-white font-extrabold text-xs text-black p-1 text-center align-middle"
-                            title={`${cell.mapel || 'Mengajar'} (${cell.kelas}) | ${dayName} Jam Ke-${jp}${
-                              slotInfo?.pukul ? ` (${slotInfo.pukul})` : ''
-                            }`}
-                          >
-                            {cell.kelas}
-                          </td>
-                        );
-                      }
-
+                  {/* 5 Hari (d=0..4: Senin s/d Jumat) */}
+                  {[0, 1, 2, 3, 4].map((d) => {
+                    const maxJp = schedStruct.maxJpPerDay[d] ?? 11;
+                    const isOff = jp > maxJp;
+                    if (isOff) {
                       return (
                         <td
                           key={d}
-                          className="border-[1.5px] border-black bg-white p-1 text-center align-middle"
-                          title={slotInfo?.pukul ? `${dayName} Jam Ke-${jp} (${slotInfo.pukul})` : undefined}
+                          className="border-[1.5px] border-black bg-white p-1 text-center text-slate-300"
                         >
                           &nbsp;
                         </td>
                       );
-                    })}
-                  </tr>
+                    }
 
-                  {/* Baris Istirahat Dinamis (Interleaved Berdasarkan Template Jam Efektif) */}
-                  {schedStruct.hasBreakAtJp(jp) && (
-                    <tr className="h-7">
-                      <td className="border-[1.5px] border-black bg-[#fffde7] text-[11px] font-extrabold text-[#7c5c00] p-1 text-center tracking-wider align-middle">
-                        ISTIRAHAT
+                    const cell = teacherSchedule.grid[d]?.[s];
+                    const slotInfo = schedStruct.slotsPerDay[d]?.[s];
+                    const dayName = dayNames[d];
+
+                    if (cell && cell !== 'X') {
+                      return (
+                        <td
+                          key={d}
+                          className="border-[1.5px] border-black bg-white font-extrabold text-xs text-black p-1 text-center align-middle"
+                          title={`${cell.mapel || 'Mengajar'} (${cell.kelas}) | ${dayName} Jam Ke-${jp}${
+                            slotInfo?.pukul ? ` (${slotInfo.pukul})` : ''
+                          }`}
+                        >
+                          {cell.kelas}
+                        </td>
+                      );
+                    }
+
+                    return (
+                      <td
+                        key={d}
+                        className="border-[1.5px] border-black bg-white p-1 text-center align-middle"
+                        title={slotInfo?.pukul ? `${dayName} Jam Ke-${jp} (${slotInfo.pukul})` : undefined}
+                      >
+                        &nbsp;
                       </td>
-                      {[0, 1, 2, 3, 4].map((d) => {
-                        const br = schedStruct.getBreakForDay(d, jp);
-                        const maxJp = schedStruct.maxJpPerDay[d] ?? 11;
-                        if (br) {
-                          return (
-                            <td
-                              key={d}
-                              className="border-[1.5px] border-black bg-[#fffde7] text-[11px] font-bold text-[#7c5c00] p-1 text-center italic leading-tight align-middle"
-                            >
-                              <div>{br.label}</div>
-                              {showTimes && br.pukul && (
-                                <div className="text-[10px] font-normal not-italic text-[#8c6d00]">
-                                  ({br.pukul})
-                                </div>
-                              )}
-                            </td>
-                          );
-                        }
-                        if (jp <= maxJp) {
-                          return (
-                            <td
-                              key={d}
-                              className="border-[1.5px] border-black bg-[#fffde7] p-1 text-center text-xs"
-                            >
-                              &nbsp;
-                            </td>
-                          );
-                        }
-                        return (
-                          <td key={d} className="border-[1.5px] border-black bg-white p-1">
-                            &nbsp;
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  )}
-                </React.Fragment>
+                    );
+                  })}
+                </tr>
               );
             })}
           </tbody>

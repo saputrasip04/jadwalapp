@@ -65,4 +65,31 @@ describe('Integrasi Pengaturan Jam Efektif (Template Jam Efektif -> Jadwal Guru)
     // Jam 1 Selasa harus mulai 07.15 (setelah Yasin 15 menit dari 07.00)
     expect(struct.slotsPerDay[1]![0]!.start).toBe('07.15');
   });
+
+  it('harus mengembalikan ID guru (guru.kode) sebagai kode yang muncul di jadwal resmi', async () => {
+    const { getTeacherDisplayCode } = await import('../../src/domain/schedule-resolver');
+    const mockGuru = {
+      id: 'g-12345',
+      kode: '4',
+      nama: 'SAPUTRA INDRA PURNAMA, S.PD',
+      nip_nik: null,
+      sk_guru: 'PRODUKTIF PSPT',
+      tipe_guru: 'PRODUKTIF' as const,
+      setting_jp: 28,
+      jp_min: null,
+      jp_maks: null,
+      maks_jp_hari: null,
+      min_hari_bebas: null,
+      maks_gap: null,
+      aktif: 1,
+    };
+
+    // Harus mengembalikan ID '4', bukan 'PST4'
+    expect(getTeacherDisplayCode(mockGuru)).toBe('4');
+
+    // Jika guru tidak punya kode, fallback ke id
+    const mockGuruNoKode = { ...mockGuru, kode: '' };
+    expect(getTeacherDisplayCode(mockGuruNoKode)).toBe('g-12345');
+  });
 });
+
