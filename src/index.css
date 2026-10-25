@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-slate-900 bg-slate-50 selection:bg-brand-500 selection:text-white;
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  aside, header, button, .print\:hidden, .no-print {
+    display: none !important;
+  }
+  .jam-efektif-sheet {
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .jam-efektif-sheet table {
+    border: 2px solid #000000 !important;
+  }
+  .jam-efektif-sheet table th.header-day {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .jam-efektif-sheet table th.header-sub {
+    background-color: #facc15 !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .jam-efektif-sheet table tr.row-break td {
+    background-color: #374151 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Mockup SMK Design System */
+.mockup-card-blue {
+  background: #3b71ca;
+  border: 2px solid #1e3a8a;
+  border-radius: 4px;
+  padding: 16px 20px;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  min-height: 580px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mockup-title {
+  text-align: center;
+  font-size: 1.65rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0 0 20px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.mockup-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.88rem;
+}
+
+.mockup-table th {
+  background: #8faadc;
+  border: 2px solid #000000;
+  padding: 10px 14px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #000000;
+}
+
+.mockup-table td {
+  border: 2px solid #000000;
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+.mockup-table tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.mockup-table tr:hover {
+  background: #e0edff !important;
+}
+
+.col-no {
+  text-align: center;
+  font-weight: 600;
+  width: 50px;
+}
+
+.col-nama {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.col-id {
+  text-align: center;
+  font-weight: 900;
+  font-size: 1rem;
+  width: 60px;
+}
+
+.col-mapel {
+  font-weight: 600;
+  text-transform: uppercase;
+}

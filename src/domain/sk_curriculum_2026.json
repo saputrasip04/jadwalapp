@@ -1,0 +1,1071 @@
+{
+    "teachers": [
+        {
+            "id": 1,
+            "nama": "HARTONO, S.Pd,. M.Pd",
+            "kode": "1",
+            "mapelUtama": "KEPALA UPT",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 2,
+            "nama": "MASHURI, S.Pdi",
+            "kode": "2",
+            "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PAI1",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI2",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI3",
+                    "cols": [],
+                    "jp": 3
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 3,
+            "nama": "DADANG HENDRA KUSUMA, S.Pdi",
+            "kode": "3",
+            "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PAI1",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI2",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI3",
+                    "cols": [],
+                    "jp": 3
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 4,
+            "nama": "IMAM HAMBALI, S.Pd",
+            "kode": "4",
+            "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PAI2",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI3",
+                    "cols": [],
+                    "jp": 3
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 5,
+            "nama": "GUS WUL WAFA, S.PdI, M.Pd",
+            "kode": "5",
+            "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PAI1",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI2",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI3",
+                    "cols": [],
+                    "jp": 3
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 6,
+            "nama": "CLEARYTA PRESTY ELMARA, S.PdI",
+            "kode": "6",
+            "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PAI1",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI2",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI3",
+                    "cols": [],
+                    "jp": 3
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 7,
+            "nama": "FRIDA ARI SUGIANTI, S.PdI",
+            "kode": "7",
+            "mapelUtama": "PENDIDIKAN AGAMA ISLAM",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PAI1",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PAI3",
+                    "cols": [],
+                    "jp": 3
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 8,
+            "nama": "NUR HIDAYAT, S.Sos",
+            "kode": "8",
+            "mapelUtama": "PANCASILA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 9,
+            "nama": "IRKA VIANATA, S.Pd",
+            "kode": "12",
+            "mapelUtama": "BAHASA INDONESIA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 10,
+            "nama": "AULIA MIKA EVA DAMAYANTIS.Pd",
+            "kode": "13",
+            "mapelUtama": "BAHASA INDONESIA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 11,
+            "nama": "CHUSNUL CHOTIMAH, S.Pd. M.Pd",
+            "kode": "14",
+            "mapelUtama": "BAHASA INDONESIA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 12,
+            "nama": "IWAN FAHMI,S.Pd",
+            "kode": "15",
+            "mapelUtama": "BAHASA INDONESIA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 13,
+            "nama": "Drs. HAIRUL",
+            "kode": "16",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 14,
+            "nama": "INDAYANI, S.Pd",
+            "kode": "17",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 16,
+            "nama": "UMI ROSYIDAH, S.Pd",
+            "kode": "19",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 17,
+            "nama": "RIKEN KURNIANINGTYAS, S.Pd",
+            "kode": "20",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 18,
+            "nama": "NURSIYATI EKA PRATIWI, S.Pd",
+            "kode": "21",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 19,
+            "nama": "ULIYA FATIMAH, M.Pd",
+            "kode": "22",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 20,
+            "nama": "MIRA SEPTINA DEWI, S.Si, Gr",
+            "kode": "23",
+            "mapelUtama": "MATEMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 21,
+            "nama": "AGUNG ARI WIDODO, S.Pd",
+            "kode": "24",
+            "mapelUtama": "SEJARAH INDONESIA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 22,
+            "nama": "MUHAMMAD SAMAN, S.Pd",
+            "kode": "9",
+            "mapelUtama": "SEJARAH INDONESIA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 23,
+            "nama": "HERMI HANDAYANI, S.Pd",
+            "kode": "25",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 24,
+            "nama": "TUTUT HERMAWAN, S.Pd",
+            "kode": "26",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 25,
+            "nama": "IDA NURHAYATI, S.Pd",
+            "kode": "27",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 26,
+            "nama": "RANDI RATNA SARI, S.Pd",
+            "kode": "28",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 27,
+            "nama": "ROPIKOH, S.Pd",
+            "kode": "29",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 28,
+            "nama": "UMI MUSLIHA, S.Pd",
+            "kode": "31",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 29,
+            "nama": "LINDA NURLAILY, S.Pd",
+            "kode": "32",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 30,
+            "nama": "DESY ALFIRDA EKASARI, S.Pd",
+            "kode": "33",
+            "mapelUtama": "BAHASA INGGRIS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 31,
+            "nama": "KUSUMA AYU HARI MURTI, S.Pd",
+            "kode": "34",
+            "mapelUtama": "SENI BUDAYA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 32,
+            "nama": "INDARTI RETNA NINGTIYAS, S.Pd",
+            "kode": "30",
+            "mapelUtama": "SENI BUDAYA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 33,
+            "nama": "MOH ALI, S.T",
+            "kode": "36",
+            "mapelUtama": "PROJEK IPAS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 34,
+            "nama": "HADI PRIYO UTOMO, S.Si S.Pd",
+            "kode": "37",
+            "mapelUtama": "PROJEK IPAS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 35,
+            "nama": "ENI KURNIASIH, S.Pd",
+            "kode": "38",
+            "mapelUtama": "PROJEK IPAS",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 36,
+            "nama": "GANANG ARIFIANSYAH, S.Pd",
+            "kode": "39",
+            "mapelUtama": "PENJASKES",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 37,
+            "nama": "MOHAMMAD JAKA PRADANA, S.Pd",
+            "kode": "40",
+            "mapelUtama": "PENJASKES",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 38,
+            "nama": "ENDANG SETYORINI, S.Pd",
+            "kode": "41",
+            "mapelUtama": "PENJASKES",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 39,
+            "nama": "SUGIHARSO. S.Pd",
+            "kode": "42",
+            "mapelUtama": "PENJASKES",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 40,
+            "nama": "MISBAH, S.Kom",
+            "kode": "43",
+            "mapelUtama": "INFORMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 41,
+            "nama": "MOHAMMAD NUR WAHYU UTAMA PUTRA, S.Pd",
+            "kode": "44",
+            "mapelUtama": "INFORMATIKA",
+            "total": 0,
+            "items": [],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 42,
+            "nama": "HARUN, S.T",
+            "kode": "47",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 44,
+            "nama": "TOMI RAHMAD SANTOSO, S.Pd, MM.",
+            "kode": "49",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 45,
+            "nama": "SUHANDONO, S.T",
+            "kode": "50",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 46,
+            "nama": "MOH. AWAFI, S.Pd, S.T",
+            "kode": "51",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 47,
+            "nama": "ANGGA SEPTA HENDRAJAYA, S.Pd",
+            "kode": "52",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 48,
+            "nama": "EDY ABDUL GHOFUR, S.T",
+            "kode": "53",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 49,
+            "nama": "SUPIYANTO, S.T",
+            "kode": "54",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 50,
+            "nama": "AHMAD ALI WAFA, S.T",
+            "kode": "55",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 51,
+            "nama": "SAIPUL HADI, S.T",
+            "kode": "56",
+            "mapelUtama": "PRODUKTIF LAS",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 52,
+            "nama": "HASRUL EFENDI, S.T",
+            "kode": "57",
+            "mapelUtama": "PRODUKTIF LAS",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 53,
+            "nama": "MOH HARIS, S.T. MT",
+            "kode": "58",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 54,
+            "nama": "PRAYOGI ADINOTO, S.Kom. MM",
+            "kode": "59",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 55,
+            "nama": "IMAM MASHUD, S.Kom",
+            "kode": "60",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 56,
+            "nama": "SHERLY ARUM RISTYARA, S.Kom",
+            "kode": "61",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 57,
+            "nama": "YASSER MAULANA, S.T",
+            "kode": "62",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 58,
+            "nama": "MOH. HAERONI, S.Kom",
+            "kode": "64",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 59,
+            "nama": "DWI RINI WIDAYANTI, S.Pd",
+            "kode": "65",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 60,
+            "nama": "RIA REJEKIWATI, S.E",
+            "kode": "66",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 61,
+            "nama": "DEWI KHOIRIYAWATI FIRDAUS, S.E",
+            "kode": "67",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 62,
+            "nama": "NISFI LAILIAH, S.E, Gr",
+            "kode": "68",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 63,
+            "nama": "DEVI VEBRIYANTO, S.Pd, Gr",
+            "kode": "69",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 64,
+            "nama": "MAULIDA LATHIFIYANA HADI, S.Pd, Gr",
+            "kode": "70",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 65,
+            "nama": "NURUL LAILIYAH, S.Pd",
+            "kode": "71",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 66,
+            "nama": "LILIK ISFAHANA, S.E",
+            "kode": "72",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 67,
+            "nama": "DIAN NOVITASARI, S.Pd",
+            "kode": "73",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 68,
+            "nama": "DWI PURWANTI, S.Pd",
+            "kode": "74",
+            "mapelUtama": "PRODUKTIF KULINER",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 69,
+            "nama": "NIRMALA PRAFITRI, S.Pd",
+            "kode": "75",
+            "mapelUtama": "PRODUKTIF KULINER",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 70,
+            "nama": "DEVITA ANGGRAENI, S.Pd, Gr.",
+            "kode": "76",
+            "mapelUtama": "PRODUKTIF KULINER",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 71,
+            "nama": "DEVI SUSI HARIYANI, S.Pd",
+            "kode": "77",
+            "mapelUtama": "PRODUKTIF KULINER",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 72,
+            "nama": "UMU NURUL AZIZAH, S.Pd",
+            "kode": "78",
+            "mapelUtama": "PRODUKTIF DPB",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 73,
+            "nama": "NENOK MITASARI, S.Pd",
+            "kode": "79",
+            "mapelUtama": "PRODUKTIF DPB",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 74,
+            "nama": "ENGGAR ANINDITA, S.Pd",
+            "kode": "80",
+            "mapelUtama": "PRODUKTIF DPB",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 75,
+            "nama": "PUTRI RUKMANA DEWI, S.T",
+            "kode": "81",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 76,
+            "nama": "MOHAMMAD APRI SASTRIYONO, S.Tr.K.M",
+            "kode": "82",
+            "mapelUtama": "PRODUKTIF PSPT",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PRO2PSPT",
+                    "cols": [],
+                    "jp": 4
+                },
+                {
+                    "mapel": "PRO3PSPT",
+                    "cols": [],
+                    "jp": 6
+                },
+                {
+                    "mapel": "MINAT2PSPT",
+                    "cols": [],
+                    "jp": 4
+                }
+            ],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 77,
+            "nama": "LATIFAH ARDIANA, S.Kom",
+            "kode": "83",
+            "mapelUtama": "PRODUKTIF PSPT",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PRO1PSPT",
+                    "cols": [],
+                    "jp": 9
+                },
+                {
+                    "mapel": "PRO2PSPT",
+                    "cols": [],
+                    "jp": 6
+                }
+            ],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 78,
+            "nama": "VERY KURNIAWAN, S.Kom",
+            "kode": "84",
+            "mapelUtama": "PRODUKTIF PSPT",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PRO2PSPT",
+                    "cols": [],
+                    "jp": 8
+                },
+                {
+                    "mapel": "PRO3PSPT",
+                    "cols": [],
+                    "jp": 4
+                }
+            ],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 79,
+            "nama": "SAPUTRA INDRA PURNAMA, S.Pd",
+            "kode": "86",
+            "mapelUtama": "PRODUKTIF PSPT",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "MINAT3PSPT",
+                    "cols": [],
+                    "jp": 4
+                },
+                {
+                    "mapel": "PKK2PSPT",
+                    "cols": [],
+                    "jp": 5
+                },
+                {
+                    "mapel": "PKK3PSPT",
+                    "cols": [],
+                    "jp": 5
+                }
+            ],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 80,
+            "nama": "NANDA IRVAN SODIKIN, S.T",
+            "kode": "63",
+            "mapelUtama": "PRODUKTIF PSPT",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "PRO1PSPT",
+                    "cols": [],
+                    "jp": 3
+                },
+                {
+                    "mapel": "PRO3PSPT",
+                    "cols": [],
+                    "jp": 12
+                }
+            ],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 81,
+            "nama": "YANUAR EVI ARIYANI, S.Pi",
+            "kode": "10",
+            "mapelUtama": "PRODUKTIF APAT",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 82,
+            "nama": "NURITA WAHYUNI, S.Pi",
+            "kode": "87",
+            "mapelUtama": "PRODUKTIF APAT",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 83,
+            "nama": "DEVIA RUS WIDIYA, S.Pi",
+            "kode": "88",
+            "mapelUtama": "PRODUKTIF APAT",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 84,
+            "nama": "ARIF HARTOYO,S.T, Gr",
+            "kode": "89",
+            "mapelUtama": "PRODUKTIF TKR",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 85,
+            "nama": "NURUL HUDA, S,Kom",
+            "kode": "91",
+            "mapelUtama": "PRODUKTIF TKJ",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 86,
+            "nama": "ZAINUL ARIFIN SE, S.Sos, M.Si",
+            "kode": "92",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 87,
+            "nama": "RIRIS NOVIANTI, S.Pd",
+            "kode": "93",
+            "mapelUtama": "PRODUKTIF AK",
+            "total": 0,
+            "items": [],
+            "tipe": "P",
+            "bebanJp": 0
+        },
+        {
+            "id": 88,
+            "nama": "ZAINUL ABIDIN, S.Pd",
+            "kode": "95",
+            "mapelUtama": "Bimbingan Konseling (BP\/BK)",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "BK",
+                    "jp": 2,
+                    "cols": []
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 89,
+            "nama": "MUJIBURROHMAN, S.Pd",
+            "kode": "96",
+            "mapelUtama": "Bimbingan Konseling (BP\/BK)",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "BK",
+                    "jp": 2,
+                    "cols": []
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 90,
+            "nama": "SRI ATNAWATI, S.Pd",
+            "kode": "97",
+            "mapelUtama": "Bimbingan Konseling (BP\/BK)",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "BK",
+                    "jp": 2,
+                    "cols": []
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        },
+        {
+            "id": 91,
+            "nama": "SURAJI, S.Pd",
+            "kode": "90",
+            "mapelUtama": "Bimbingan Konseling (BP\/BK)",
+            "total": 0,
+            "items": [
+                {
+                    "mapel": "BK",
+                    "jp": 2,
+                    "cols": []
+                }
+            ],
+            "tipe": "R",
+            "bebanJp": 0
+        }
+    ],
+    "totalTeachers": 89,
+    "grandTotalJP": 0
+}

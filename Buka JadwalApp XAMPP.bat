@@ -1,0 +1,3 @@
+@echo off
+echo Membuka Penjadwal Blok SMK di Apache XAMPP...
+start http://localhost/jadwalapp/
