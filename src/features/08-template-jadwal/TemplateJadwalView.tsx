@@ -53,6 +53,9 @@ export const TemplateJadwalView: React.FC = () => {
   const [modalCode, setModalCode] = useState('');
   const [modalLabel, setModalLabel] = useState('');
   const [modalApplyAllDay, setModalApplyAllDay] = useState(false);
+  const [modalApplyMode, setModalApplyMode] = useState<'SINGLE' | 'RANGE' | 'ALL'>('SINGLE');
+  const [rangeStart, setRangeStart] = useState<number>(1);
+  const [rangeEnd, setRangeEnd] = useState<number>(4);
 
   // Inisialisasi data template
   useEffect(() => {
@@ -172,6 +175,9 @@ export const TemplateJadwalView: React.FC = () => {
     setModalCode(cell.code || '');
     setModalLabel(cell.label || cell.code || '');
     setModalApplyAllDay(false);
+    setModalApplyMode('SINGLE');
+    setRangeStart(jp);
+    setRangeEnd(Math.min(11, jp + 3));
   };
 
   // Simpan Edit Slot
@@ -187,21 +193,35 @@ export const TemplateJadwalView: React.FC = () => {
     const targetDays = { ...targetSchedule.days };
     const daySlots = [...(targetDays[hari] || [])];
 
-    if (modalApplyAllDay) {
+    const finalCode = modalType === 'KOSONG' ? '' : modalCode.trim().toUpperCase();
+    const finalLabel = modalType === 'KOSONG' ? '' : modalLabel.trim() || finalCode;
+
+    if (modalApplyMode === 'ALL' || modalApplyAllDay) {
       for (let i = 0; i < 11; i++) {
         daySlots[i] = {
           jp: i + 1,
           type: modalType,
-          code: modalType === 'KOSONG' ? '' : modalCode.trim().toUpperCase(),
-          label: modalType === 'KOSONG' ? '' : modalLabel.trim() || modalCode.trim().toUpperCase(),
+          code: finalCode,
+          label: finalLabel,
+        };
+      }
+    } else if (modalApplyMode === 'RANGE') {
+      const start = Math.max(1, Math.min(rangeStart, rangeEnd));
+      const end = Math.min(11, Math.max(rangeStart, rangeEnd));
+      for (let i = start - 1; i <= end - 1; i++) {
+        daySlots[i] = {
+          jp: i + 1,
+          type: modalType,
+          code: finalCode,
+          label: finalLabel,
         };
       }
     } else {
       daySlots[jp - 1] = {
         jp,
         type: modalType,
-        code: modalType === 'KOSONG' ? '' : modalCode.trim().toUpperCase(),
-        label: modalType === 'KOSONG' ? '' : modalLabel.trim() || modalCode.trim().toUpperCase(),
+        code: finalCode,
+        label: finalLabel,
       };
     }
 
@@ -217,7 +237,7 @@ export const TemplateJadwalView: React.FC = () => {
     addToast({
       type: 'success',
       title: 'Slot Diperbarui',
-      message: 'Perubahan slot jadwal berhasil disimpan.',
+      message: `Perubahan slot (${finalCode || modalType}) pada hari ${NAMA_HARI[hari]} berhasil disimpan di Blok Hijau.`,
     });
   };
 
@@ -708,11 +728,14 @@ export const TemplateJadwalView: React.FC = () => {
 
             <div className="p-5 space-y-4 text-xs">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-blue-900 space-y-1">
-                <div className="font-bold">
-                  {NAMA_HARI[editingSlot.hari]} — Jam Ke-{editingSlot.jp}
+                <div className="font-bold flex items-center justify-between">
+                  <span>{NAMA_HARI[editingSlot.hari]} — Jam Ke-{editingSlot.jp}</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-200 text-blue-950">
+                    {pairsMap[editingSlot.pairId]?.tingkat} {pairsMap[editingSlot.pairId]?.jurusanKode}
+                  </span>
                 </div>
                 <div className="text-[11px] text-blue-700">
-                  Target: {pairsMap[editingSlot.pairId]?.[editingSlot.rombelKey].kelasNama}
+                  Target: <strong>{pairsMap[editingSlot.pairId]?.[editingSlot.rombelKey].kelasNama}</strong> ({editingSlot.rombelKey === 'rombel1' ? 'Blok 1' : 'Blok 2'})
                 </div>
               </div>
 
@@ -725,7 +748,7 @@ export const TemplateJadwalView: React.FC = () => {
                     onClick={() => setModalType('PRODUKTIF')}
                     className={`py-2 px-3 rounded-xl font-bold border transition-all text-center ${
                       modalType === 'PRODUKTIF'
-                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm'
+                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-300'
                         : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
@@ -736,7 +759,7 @@ export const TemplateJadwalView: React.FC = () => {
                     onClick={() => setModalType('REGULER')}
                     className={`py-2 px-3 rounded-xl font-bold border transition-all text-center ${
                       modalType === 'REGULER'
-                        ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-sm ring-2 ring-blue-300'
                         : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
@@ -756,46 +779,203 @@ export const TemplateJadwalView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Kode Mapel */}
+              {/* Pilihan Khusus Blok Hijau: Produktif, PKK, Peminatan */}
+              {modalType === 'PRODUKTIF' && (() => {
+                const pInfo = pairsMap[editingSlot.pairId];
+                const t = pInfo?.tingkat || 'XII';
+                const j = pInfo?.jurusanKode || 'PSPT';
+                const tNum = t === 'X' ? '1' : t === 'XI' ? '2' : '3';
+                const proCode = `PRO${tNum}${j}`;
+                const minatCode = `MINAT${tNum}${j}`;
+                const pkkCode = `PKK${tNum}${j}`;
+
+                return (
+                  <div className="bg-emerald-50/80 border border-emerald-300 rounded-xl p-3 space-y-2">
+                    <label className="font-extrabold text-emerald-950 block text-[11px] uppercase tracking-wide">
+                      ⚡ Pilih Kategori Mapel Kejuruan (Blok Hijau):
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalCode(proCode);
+                          setModalLabel(`PRODUKTIF ${tNum}`);
+                        }}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs border transition-all ${
+                          modalCode === proCode
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                            : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <div className="font-black">PRODUKTIF</div>
+                        <div className="text-[10px] font-mono">{proCode}</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalCode(minatCode);
+                          setModalLabel(`PEMINATAN ${tNum}`);
+                        }}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs border transition-all ${
+                          modalCode === minatCode
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                            : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <div className="font-black">PEMINATAN</div>
+                        <div className="text-[10px] font-mono">{minatCode}</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalCode(pkkCode);
+                          setModalLabel(`PKK ${tNum}`);
+                        }}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs border transition-all ${
+                          modalCode === pkkCode
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                            : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <div className="font-black">PKK</div>
+                        <div className="text-[10px] font-mono">{pkkCode}</div>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Kode Mapel Input Manual */}
               {modalType !== 'KOSONG' && (
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Kode Mata Pelajaran:</label>
-                  <input
-                    type="text"
-                    value={modalCode}
-                    onChange={(e) => setModalCode(e.target.value)}
-                    placeholder="Contoh: PRO3PSPT, MINAT3PSPT, PKK3PSPT"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-xs uppercase"
-                  />
-                  {/* Quick Chips */}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {['PRO3PSPT', 'MINAT3PSPT', 'PKK3PSPT', 'PRO2PSPT', 'PRO1PSPT', 'MUATAN LOKAL'].map(
-                      (code) => (
-                        <button
-                          key={code}
-                          type="button"
-                          onClick={() => setModalCode(code)}
-                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700"
-                        >
-                          {code}
-                        </button>
-                      )
-                    )}
+                  <label className="font-bold text-slate-700 block mb-1">Kode & Label Mata Pelajaran:</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={modalCode}
+                      onChange={(e) => setModalCode(e.target.value)}
+                      placeholder="Kode Mapel (PRO3PSPT, MINAT3PSPT, PKK3PSPT)"
+                      className="w-1/2 px-3 py-2 border border-slate-300 rounded-xl font-bold text-xs uppercase"
+                    />
+                    <input
+                      type="text"
+                      value={modalLabel}
+                      onChange={(e) => setModalLabel(e.target.value)}
+                      placeholder="Label Tampilan (Opsional)"
+                      className="w-1/2 px-3 py-2 border border-slate-300 rounded-xl font-bold text-xs"
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Checkbox Terapkan Semua Jam Hari Ini */}
-              <div className="pt-2 border-t border-slate-100">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={modalApplyAllDay}
-                    onChange={(e) => setModalApplyAllDay(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
-                  />
-                  <span>Terapkan format ini ke seluruh jam (1-11) pada hari {NAMA_HARI[editingSlot.hari]}</span>
+              {/* Pengaturan Penerapan Jam / Rentang Jam */}
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <label className="font-bold text-slate-700 block text-[11px] uppercase tracking-wide">
+                  Cakupan Penerapan Jam di Hari {NAMA_HARI[editingSlot.hari]}:
                 </label>
+                
+                <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setModalApplyMode('SINGLE')}
+                    className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all ${
+                      modalApplyMode === 'SINGLE'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Jam Ke-{editingSlot.jp} Saja
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalApplyMode('RANGE')}
+                    className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all ${
+                      modalApplyMode === 'RANGE'
+                        ? 'bg-white text-blue-900 shadow-sm ring-1 ring-blue-300'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Rentang Jam
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalApplyMode('ALL')}
+                    className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all ${
+                      modalApplyMode === 'ALL'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Semua Jam (1-11)
+                  </button>
+                </div>
+
+                {/* Input Rentang Jam jika mode RANGE dipilih */}
+                {modalApplyMode === 'RANGE' && (
+                  <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-bold text-slate-700">Dari Jam Ke:</span>
+                      <select
+                        value={rangeStart}
+                        onChange={(e) => setRangeStart(Number(e.target.value))}
+                        className="border border-slate-300 bg-white rounded px-2 py-1 font-bold text-xs"
+                      >
+                        {Array.from({ length: 11 }, (_, i) => i + 1).map((j) => (
+                          <option key={j} value={j}>Jam {j}</option>
+                        ))}
+                      </select>
+                      <span className="font-bold text-slate-700">s/d Jam Ke:</span>
+                      <select
+                        value={rangeEnd}
+                        onChange={(e) => setRangeEnd(Number(e.target.value))}
+                        className="border border-slate-300 bg-white rounded px-2 py-1 font-bold text-xs"
+                      >
+                        {Array.from({ length: 11 }, (_, i) => i + 1).map((j) => (
+                          <option key={j} value={j}>Jam {j}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Tombol Shortcut Rentang Jam Cepat */}
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      <span className="text-[10px] text-slate-500 font-bold self-center">Shortcut:</span>
+                      <button
+                        type="button"
+                        onClick={() => { setRangeStart(1); setRangeEnd(4); }}
+                        className="px-2 py-0.5 rounded bg-white hover:bg-blue-100 text-blue-900 font-bold text-[10px] border border-blue-200"
+                      >
+                        Jam 1-4 (4 JP: Peminatan)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRangeStart(5); setRangeEnd(9); }}
+                        className="px-2 py-0.5 rounded bg-white hover:bg-blue-100 text-blue-900 font-bold text-[10px] border border-blue-200"
+                      >
+                        Jam 5-9 (5 JP: PKK)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRangeStart(1); setRangeEnd(7); }}
+                        className="px-2 py-0.5 rounded bg-white hover:bg-blue-100 text-blue-900 font-bold text-[10px] border border-blue-200"
+                      >
+                        Jam 1-7 (7 JP)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRangeStart(8); setRangeEnd(11); }}
+                        className="px-2 py-0.5 rounded bg-white hover:bg-blue-100 text-blue-900 font-bold text-[10px] border border-blue-200"
+                      >
+                        Jam 8-11 (4 JP)
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-[11px] text-emerald-900 leading-snug">
+                💡 <strong>Ketentuan:</strong> Peletakan mata pelajaran <strong>PRODUKTIF</strong>, <strong>PKK</strong>, dan <strong>PEMINATAN</strong> boleh bebas dirubah atau ditukar jam/harinya, asalkan tetap berada di <strong>Blok Hijau</strong>.
               </div>
             </div>
 
@@ -812,7 +992,7 @@ export const TemplateJadwalView: React.FC = () => {
                 onClick={handleSaveEditSlot}
                 className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
               >
-                Simpan Slot
+                Simpan Perubahan
               </button>
             </div>
           </div>

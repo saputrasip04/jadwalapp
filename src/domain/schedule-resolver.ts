@@ -126,6 +126,7 @@ export function findTeacherForRombelAndMapel(
 
         const isBothProduktif =
           (cleanKode.startsWith('PRO') || cleanName.includes('PRODUKTIF')) &&
+          !cleanKode.includes('PKK') && !cleanKode.includes('MINAT') &&
           (cCode.startsWith('PRO') || cCode.includes('PRODUKTIF') || items.some((it: any) => (it.mapelKode || '').toUpperCase().startsWith('PRO')));
 
         const isAliasMatch = (() => {
@@ -167,6 +168,9 @@ export function findTeacherForRombelAndMapel(
           }
           if (cleanKode.includes('PKK') || cleanName.includes('KREATIF') || cleanName.includes('KEWIRAUSAHAAN')) {
             return cCode.includes('PKK') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('PKK'));
+          }
+          if (cleanKode.includes('MINAT') || cleanKode.includes('PILIHAN') || cleanName.includes('PEMINATAN') || cleanName.includes('PILIHAN')) {
+            return cCode.includes('MINAT') || cCode.includes('PILIHAN') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('MINAT') || (it.mapelKode || '').toUpperCase().includes('PILIHAN'));
           }
           return false;
         })();

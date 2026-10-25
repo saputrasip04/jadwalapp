@@ -430,9 +430,12 @@ export async function generateFullScheduleFromTemplate(
         const cCode = (typeof cell === 'string' ? cell : cell.mapelKode || '').toUpperCase();
         const items = Array.isArray(cell.items) ? cell.items : [];
         if (
+          cCode === cleanKode ||
           cCode.includes(cleanKode) ||
-          items.some((it: any) => (it.mapelKode || '').toUpperCase().includes(cleanKode)) ||
-          (cleanKode.startsWith('PRO') && (cCode.startsWith('PRO') || items.some((it: any) => (it.mapelKode || '').toUpperCase().startsWith('PRO'))))
+          items.some((it: any) => (it.mapelKode || '').toUpperCase() === cleanKode || (it.mapelKode || '').toUpperCase().includes(cleanKode)) ||
+          (cleanKode.includes('PKK') && (cCode.includes('PKK') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('PKK')))) ||
+          ((cleanKode.includes('MINAT') || cleanKode.includes('PILIHAN')) && (cCode.includes('MINAT') || cCode.includes('PILIHAN') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('MINAT')))) ||
+          (cleanKode.startsWith('PRO') && !cleanKode.includes('PKK') && !cleanKode.includes('MINAT') && (cCode.startsWith('PRO') || items.some((it: any) => (it.mapelKode || '').toUpperCase().startsWith('PRO'))))
         ) {
           return guruId;
         }
@@ -492,24 +495,51 @@ export async function generateFullScheduleFromTemplate(
 
         for (const slot of slots) {
           if (slot.type === 'PRODUKTIF') {
+            const slotCodeUpper = (slot.code || `PRO${jur}`).toUpperCase();
+            const isPkkSlot = slotCodeUpper.includes('PKK');
+            const isMinatSlot = slotCodeUpper.includes('MINAT') || slotCodeUpper.includes('PILIHAN');
+
             // Prioritas 1: Temukan guru yang ditugaskan khusus ke rombel ini di Matrix SK
-            const matrixGuruId = findTeacherFromMatrix(k.id, slot.code || `PRO${jur}`);
-            const prodTeacher =
+            const matrixGuruId = findTeacherFromMatrix(k.id, slotCodeUpper);
+            let prodTeacher =
               (matrixGuruId && !teacherBusy.has(`${blok}|${h}|${slot.jp}|${matrixGuruId}`))
                 ? guruList.find((g) => g.id === matrixGuruId || g.kode === matrixGuruId)
-                : guruList.find(
-                    (g) =>
-                      !teachersWithMatrixAssignments.has(g.id) &&
-                      g.tipe_guru === 'PRODUKTIF' &&
-                      !teacherBusy.has(`${blok}|${h}|${slot.jp}|${g.id}`) &&
-                      ((g.sk_guru && g.sk_guru.toUpperCase().includes(jur)) ||
-                        (g.nama && g.nama.toUpperCase().includes(jur)))
-                  );
+                : null;
+
+            // Jika belum ada dari matrix atau sibuk, cari guru yang sesuai kompetensinya (PKK, Peminatan, atau Kejuruan)
+            if (!prodTeacher) {
+              if (isPkkSlot) {
+                prodTeacher = guruList.find(
+                  (g) =>
+                    !teacherBusy.has(`${blok}|${h}|${slot.jp}|${g.id}`) &&
+                    ((g.sk_guru && g.sk_guru.toUpperCase().includes('PKK')) ||
+                      (g.nama && g.nama.toUpperCase().includes('PKK')))
+                ) || null;
+              } else if (isMinatSlot) {
+                prodTeacher = guruList.find(
+                  (g) =>
+                    !teacherBusy.has(`${blok}|${h}|${slot.jp}|${g.id}`) &&
+                    ((g.sk_guru && (g.sk_guru.toUpperCase().includes('MINAT') || g.sk_guru.toUpperCase().includes('PILIHAN') || g.sk_guru.toUpperCase().includes(jur))) ||
+                      (g.nama && g.nama.toUpperCase().includes(jur)))
+                ) || null;
+              } else {
+                prodTeacher = guruList.find(
+                  (g) =>
+                    !teachersWithMatrixAssignments.has(g.id) &&
+                    g.tipe_guru === 'PRODUKTIF' &&
+                    !teacherBusy.has(`${blok}|${h}|${slot.jp}|${g.id}`) &&
+                    ((g.sk_guru && g.sk_guru.toUpperCase().includes(jur)) ||
+                      (g.nama && g.nama.toUpperCase().includes(jur)))
+                ) || null;
+              }
+            }
 
             const prodSubject =
               mapelList.find(
                 (m) =>
-                  m.kode.toUpperCase() === slot.code.toUpperCase() ||
+                  m.kode.toUpperCase() === slotCodeUpper ||
+                  (isPkkSlot && m.kode.toUpperCase().includes('PKK')) ||
+                  (isMinatSlot && m.kode.toUpperCase().includes('MINAT')) ||
                   m.kode.toUpperCase().includes(jur)
               ) || mapelList[0];
 
@@ -517,9 +547,13 @@ export async function generateFullScheduleFromTemplate(
               ? prodTeacher.id
               : matrixGuruId && !teacherBusy.has(`${blok}|${h}|${slot.jp}|${matrixGuruId}`)
               ? matrixGuruId
+              : isPkkSlot
+              ? `GURU_PKK_${k.id}_${h}_${slot.jp}`
+              : isMinatSlot
+              ? `GURU_MINAT_${k.id}_${h}_${slot.jp}`
               : `GURU_PROD_${k.id}_${h}_${slot.jp}`;
 
-            const mapelId = prodSubject ? prodSubject.id : 'MAPEL_DEFAULT';
+            const mapelId = slot.code || (prodSubject ? prodSubject.id : 'MAPEL_DEFAULT');
 
             entries.push({
               id: ulid(),
@@ -558,7 +592,7 @@ export async function generateFullScheduleFromTemplate(
               ? assignedTeacher.id
               : `GURU_REG_${k.id}_${h}_${slot.jp}`;
 
-            const mapelId = assignedSubject ? assignedSubject.id : 'MAPEL_REGULER';
+            const mapelId = slot.code || (assignedSubject ? assignedSubject.id : 'MAPEL_REGULER');
 
             entries.push({
               id: ulid(),

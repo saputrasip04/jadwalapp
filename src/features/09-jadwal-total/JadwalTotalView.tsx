@@ -13,6 +13,7 @@ import {
   ArrowLeftRight,
   Sparkles,
   AlertTriangle,
+  X,
 } from 'lucide-react';
 import { NAMA_HARI } from '../../domain/constants';
 import { exportTableToXLSX } from '../../lib/export-xlsx';
@@ -28,6 +29,7 @@ import {
   ClassTemplatePair,
   buildAllDefaultPairs,
   buildDefaultPair,
+  generateFullScheduleFromTemplate,
 } from '../../domain/template-blok-engine';
 import { useToastStore } from '../../ui/Toast';
 
@@ -172,6 +174,8 @@ export const JadwalTotalView: React.FC = () => {
   const [filterTingkat, setFilterTingkat] = useState<string>('ALL'); // 'ALL' | 'X' | 'XI' | 'XII'
   const [filterJurusan, setFilterJurusan] = useState<string>('ALL'); // 'ALL' | 'AK' | 'TKR' | ...
   const [isLockedBlokHijau, setIsLockedBlokHijau] = useState<boolean>(true);
+  const [isAutoResolving, setIsAutoResolving] = useState<boolean>(false);
+  const [showConflictModal, setShowConflictModal] = useState<boolean>(false);
 
   // Filter 48 Rombel Sekolah
   const displayRombels = useMemo(() => {
@@ -239,6 +243,7 @@ export const JadwalTotalView: React.FC = () => {
 
           const isBothProduktif =
             (cleanKode.startsWith('PRO') || cleanName.includes('PRODUKTIF')) &&
+            !cleanKode.includes('PKK') && !cleanKode.includes('MINAT') &&
             (cCode.startsWith('PRO') || cCode.includes('PRODUKTIF') || items.some((it: any) => (it.mapelKode || '').toUpperCase().startsWith('PRO')));
 
           // Aliases untuk mapel kurikulum umum SMK
@@ -250,7 +255,7 @@ export const JadwalTotalView: React.FC = () => {
               return cCode.includes('PANC') || cCode.includes('PPKN') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('PANC'));
             }
             if (cleanKode.includes('BIN') || cleanName.includes('INDONESIA')) {
-              return cCode.includes('BIN') || cCode.includes('INDONESIA') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('BIN'));
+              return cCode.includes('BIN') || (cCode.includes('INDONESIA') && !cCode.includes('SEJARAH')) || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('BIN'));
             }
             if (cleanKode.includes('MAT') || cleanName.includes('MATEMATIKA') || cleanKode.includes('MTK')) {
               return cCode.includes('MAT') || cCode.includes('MTK') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('MAT') || (it.mapelKode || '').toUpperCase().includes('MTK'));
@@ -281,6 +286,9 @@ export const JadwalTotalView: React.FC = () => {
             }
             if (cleanKode.includes('PKK')) {
               return cCode.includes('PKK') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('PKK'));
+            }
+            if (cleanKode.includes('MINAT') || cleanKode.includes('PILIHAN') || cleanName.includes('PEMINATAN') || cleanName.includes('PILIHAN')) {
+              return cCode.includes('MINAT') || cCode.includes('PILIHAN') || items.some((it: any) => (it.mapelKode || '').toUpperCase().includes('MINAT') || (it.mapelKode || '').toUpperCase().includes('PILIHAN'));
             }
             return false;
           })();
@@ -338,20 +346,55 @@ export const JadwalTotalView: React.FC = () => {
         
         const mKode = mObj?.kode || match.mapel_kelas_id || '';
         const mNama = (mObj as any)?.nama || (mObj as any)?.mapel || mKode || 'MAPEL';
+        const codeUpper = mKode.toUpperCase();
+        const namaUpper = mNama.toUpperCase();
+
         const isProd =
           (mObj as any)?.jenis === 'PRODUKTIF' ||
           (mObj as any)?.kategori === 'PRODUKTIF' ||
-          mKode.toUpperCase().startsWith('PRO') ||
-          mNama.toUpperCase().includes('PRODUKTIF');
+          codeUpper.startsWith('PRO') ||
+          namaUpper.includes('PRODUKTIF') ||
+          codeUpper.startsWith('PKK') ||
+          namaUpper.includes('PKK') ||
+          codeUpper.startsWith('MINAT') ||
+          codeUpper.startsWith('PILIHAN') ||
+          namaUpper.includes('PEMINATAN');
 
-        let teacherName = findTeacherForRombelAndMapel(r.id, mKode, mNama);
-        if (teacherName === '- Belum diset -' && match.guru_id) {
+        let displayMapel = mNama;
+        if (displayMapel === 'MAPEL' || !displayMapel) {
+          const tNum = r.tingkat === 'X' ? '1' : r.tingkat === 'XI' ? '2' : '3';
+          if (codeUpper.startsWith('MINAT') || codeUpper.startsWith('PILIHAN')) {
+            displayMapel = `PEMINATAN ${tNum}`;
+          } else if (codeUpper.startsWith('PKK')) {
+            displayMapel = `PKK ${tNum}`;
+          } else if (codeUpper.startsWith('PRO')) {
+            displayMapel = `PRODUKTIF ${tNum}`;
+          } else {
+            displayMapel = mKode;
+          }
+        }
+
+        let teacherName = '- Belum diset -';
+        if (match.guru_id) {
           const gObj = guruList.find((g) => g.id === match.guru_id || g.kode === match.guru_id);
-          if (gObj) teacherName = formatShortTeacherName(gObj.nama);
+          if (gObj) {
+            teacherName = formatShortTeacherName(gObj.nama);
+          } else if (
+            match.guru_id.startsWith('GURU_REG_') ||
+            match.guru_id.startsWith('GURU_PROD_') ||
+            match.guru_id.startsWith('GURU_PKK_') ||
+            match.guru_id.startsWith('GURU_MINAT_')
+          ) {
+            teacherName = findTeacherForRombelAndMapel(r.id, mKode, displayMapel);
+          } else {
+            teacherName = match.guru_id;
+          }
+        } else {
+          teacherName = findTeacherForRombelAndMapel(r.id, mKode, displayMapel);
         }
 
         return {
-          mapel: mNama,
+          mapel: displayMapel,
           guru: teacherName,
           isProduktif: isProd,
           kode: mKode,
@@ -404,11 +447,17 @@ export const JadwalTotalView: React.FC = () => {
         templateSlot?.code ||
         (tingkat === 'X' ? `PRO1${jur}` : tingkat === 'XI' ? `PRO2${jur}` : `PRO3${jur}`);
 
+      const codeUpper = prodCode.toUpperCase();
+      const tNum = tingkat === 'X' ? '1' : tingkat === 'XI' ? '2' : '3';
       const prodLabel =
         templateSlot?.label ||
-        (tingkat === 'X' ? 'PRODUKTIF 1' : tingkat === 'XI' ? 'PRODUKTIF 2' : 'PRODUKTIF 3');
+        (codeUpper.includes('PKK')
+          ? `PKK ${tNum}`
+          : codeUpper.includes('MINAT') || codeUpper.includes('PILIHAN')
+          ? `PEMINATAN ${tNum}`
+          : `PRODUKTIF ${tNum}`);
 
-      // Cari guru pengampu produktif dari Matrix SK / Menu Mapel untuk rombel ini
+      // Cari guru pengampu dari Matrix SK / Menu Mapel untuk rombel ini
       const teacherName = findTeacherForRombelAndMapel(r.id, prodCode, prodLabel);
 
       return {
@@ -569,6 +618,28 @@ export const JadwalTotalView: React.FC = () => {
   // Handler Cetak
   const handlePrint = () => {
     window.print();
+  };
+
+  // Handler Selesaikan Bentrok Otomatis (Algoritma Cerdas Anti-Tabrakan)
+  const handleAutoResolveConflicts = async () => {
+    try {
+      setIsAutoResolving(true);
+      const result = await generateFullScheduleFromTemplate(templateMode, customTemplatesMap);
+      addToast({
+        type: 'success',
+        title: '⚡ Jadwal Otomatis Berhasil Disusun',
+        message: `Jadwal Total 48 Rombel berhasil di-generate bebas tabrakan (${result.totalEntries} slot tersimpan di database).`,
+      });
+      setShowConflictModal(false);
+    } catch (err: any) {
+      addToast({
+        type: 'error',
+        title: 'Gagal Menyelesaikan Bentrok',
+        message: String(err?.message || err),
+      });
+    } finally {
+      setIsAutoResolving(false);
+    }
   };
 
   // Cek Bentrok Guru Otomatis Antar Seluruh 48 Rombel
@@ -748,7 +819,7 @@ export const JadwalTotalView: React.FC = () => {
               <span>Export Excel Blok</span>
             </button>
 
-            {/* Pill Status Bentrok / Bebas Tabrakan Dinamis */}
+            {/* Pill Status Bentrok / Bebas Tabrakan Dinamis & Tombol Selesaikan */}
             {bentrokCount === 0 ? (
               <div
                 className="bg-[#10b981] text-white font-black text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-emerald-300 whitespace-nowrap"
@@ -758,12 +829,26 @@ export const JadwalTotalView: React.FC = () => {
                 <span>✓ 0 Bentrok / Bebas Tabrakan (48 Kelas)</span>
               </div>
             ) : (
-              <div
-                className="bg-rose-600 text-white font-black text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-rose-300 whitespace-nowrap"
-                title={realConflicts.map((c) => `${NAMA_HARI[c.hari]} Jam ${c.jp}: ${c.guru} di kelas ${c.rombels.join(' & ')}`).join('\n')}
-              >
-                <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>⚠️ {bentrokCount} Bentrok Guru Terdeteksi</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowConflictModal(true)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-rose-300 whitespace-nowrap cursor-pointer transition-all animate-pulse"
+                  title="Klik untuk melihat rincian guru yang bentrok"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>⚠️ {bentrokCount} Bentrok Guru Terdeteksi (Lihat)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAutoResolveConflicts}
+                  disabled={isAutoResolving}
+                  className="bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-amber-200 whitespace-nowrap cursor-pointer transition-all disabled:opacity-50"
+                  title="Klik untuk menyelesaikan bentrok secara otomatis menggunakan algoritma cerdas anti-tabrakan"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 text-slate-900 ${isAutoResolving ? 'animate-spin' : ''}`} />
+                  <span>{isAutoResolving ? 'Menyusun...' : '⚡ Selesaikan Bentrok Otomatis'}</span>
+                </button>
               </div>
             )}
 
@@ -1014,6 +1099,86 @@ export const JadwalTotalView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 3. Modal Dialog Detail Bentrok Guru & Solusi Otomatis */}
+      {showConflictModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header Modal */}
+            <div className="bg-rose-600 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-300 stroke-[2.5]" />
+                <h3 className="font-black text-base uppercase tracking-wide">
+                  Detail {bentrokCount} Bentrok Guru Terdeteksi
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConflictModal(false)}
+                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Isi Konten Modal */}
+            <div className="p-4 overflow-y-auto space-y-3 flex-1 text-xs">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 leading-relaxed">
+                <p className="font-bold mb-1">💡 Mengapa terjadi bentrok?</p>
+                <p>
+                  Bentrok terjadi ketika seorang guru yang sama dijadwalkan mengajar di dua atau lebih kelas rombel yang berbeda pada hari dan jam yang persis sama.
+                </p>
+                <p className="mt-1 font-semibold text-rose-700">
+                  Gunakan tombol <strong>&ldquo;⚡ Selesaikan Bentrok Otomatis&rdquo;</strong> di bawah untuk menyusun ulang penugasan guru secara cerdas dengan algoritma anti-tabrakan.
+                </p>
+              </div>
+
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {realConflicts.map((c, idx) => (
+                  <div
+                    key={`${c.hari}-${c.jp}-${c.guru}-${idx}`}
+                    className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between gap-2 hover:bg-slate-100 transition-colors"
+                  >
+                    <div>
+                      <div className="font-extrabold text-slate-800 text-[12px] flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-black uppercase">
+                          {NAMA_HARI[c.hari]} Jam Ke-{c.jp}
+                        </span>
+                        <span>{c.guru}</span>
+                      </div>
+                      <div className="text-slate-600 text-[11px] mt-0.5">
+                        Mengajar bersamaan di kelas:{' '}
+                        <span className="font-bold text-rose-600">{c.rombels.join(' & ')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="p-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConflictModal(false)}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900 font-bold hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAutoResolveConflicts}
+                disabled={isAutoResolving}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-md flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+              >
+                <Sparkles className={`w-4 h-4 text-amber-300 ${isAutoResolving ? 'animate-spin' : ''}`} />
+                <span>{isAutoResolving ? 'Menyusun Jadwal Bebas Tabrakan...' : '⚡ Selesaikan Bentrok Otomatis'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
